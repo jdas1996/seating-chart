@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reception Seating Chart</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="name-gate" class="name-gate">
+  <div class="name-card">
+    <h2>Who's joining?</h2>
+    <p>This lets your partner see who's editing what, live.</p>
+    <input type="text" id="name-input" placeholder="Your first name" maxlength="20">
+    <button id="name-submit" class="primary">Start planning</button>
+  </div>
+</div>
+
+<div class="topbar">
+  <div>
+    <h1>Reception Seating Chart</h1>
+    <div class="sub">Drag guests between the pool and tables — synced live</div>
+  </div>
+  <div class="stats">
+    <div><b id="stat-seated">0</b>seated</div>
+    <div><b id="stat-unseated">0</b>unseated</div>
+    <div><b id="stat-tables">0</b>tables</div>
+  </div>
+</div>
+
+<div class="presence-bar" id="presence-bar">
+  <span class="presence-label">Online:</span>
+  <div id="presence-list" class="presence-list"></div>
+  <span id="connection-status" class="connection-status">connecting…</span>
+</div>
+
+<div class="toolbar">
+  <button class="primary" id="add-table">+ Add table</button>
+  <span class="tb-label">Seats per table:</span>
+  <input type="number" id="seat-size" value="10" min="2" max="20">
+  <button id="auto-fill">Auto-fill empty seats</button>
+  <button class="ghost" id="reset-btn">Reset to unassigned</button>
+  <button class="ghost" id="import-btn">Import old layout…</button>
+  <span class="save-note" id="save-note">Synced</span>
+</div>
+
+<div class="layout">
+  <div class="pool">
+    <h2>Unassigned Guests</h2>
+    <div class="count" id="pool-count">0 guests</div>
+    <input type="text" id="search" placeholder="Search a name…">
+    <div id="pool-zone"></div>
+    <div class="meal-key">
+      <div>🏷 meal tags shown next to each name</div>
+      <div style="margin-top:6px;">Drag a name onto any table to seat them.<br>Drag back here to unseat.</div>
+    </div>
+  </div>
+
+  <div class="tables-wrap" id="tables-wrap"></div>
+</div>
+
+<div class="activity-drawer" id="activity-drawer">
+  <div class="activity-head" id="activity-toggle">
+    <span>Recent activity</span>
+    <span id="activity-caret">▾</span>
+  </div>
+  <div class="activity-list" id="activity-list"></div>
+</div>
+
+<div id="import-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <h3>Import an old layout</h3>
+    <p>Paste the JSON you copied from the old single-device version. This only works while the board is empty — it won't overwrite anyone's current work.</p>
+    <textarea id="import-text" rows="8" placeholder='{"seatSize":10,"tables":[...]}'></textarea>
+    <div class="modal-actions">
+      <button class="ghost" id="import-cancel">Cancel</button>
+      <button class="primary" id="import-confirm">Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase (compat SDK — no build step needed) -->
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+
+<script src="firebase-config.js"></script>
+<script src="guests.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
