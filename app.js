@@ -10,6 +10,8 @@ let clientId, myName, myColor;
 let state = { seatSize: 10, tables: {} };
 let presence = {};
 let dragGuestName = null;
+let localDragging = false;   // suppress re-renders while we drag, or the
+let pendingRender = false;   // DOM rebuild destroys the card and kills the drag
 
 /* ---------------- setup guard ---------------- */
 if (!firebaseConfig || firebaseConfig.apiKey === 'PASTE_YOUR_API_KEY_HERE') {
@@ -149,6 +151,7 @@ function remoteDraggersOf(name){
 
 /* ---------------- rendering ---------------- */
 function render(){
+  if(localDragging){ pendingRender = true; return; }
   const search = document.getElementById('search').value.trim().toLowerCase();
 
   // pool
@@ -211,13 +214,17 @@ function makeGuestEl(name){
 
   el.addEventListener('dragstart', e=>{
     dragGuestName = name;
+    localDragging = true;
     el.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', name);
     db.ref('presence/' + clientId + '/draggingGuest').set(name);
   });
   el.addEventListener('dragend', ()=>{
     el.classList.remove('dragging');
+    localDragging = false;
     db.ref('presence/' + clientId + '/draggingGuest').set(null);
+    if(pendingRender){ pendingRender = false; render(); }
   });
   return el;
 }

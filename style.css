@@ -227,3 +227,8 @@ button.ghost{ border-color:var(--line); color:var(--ink-soft); }
   .layout{ flex-direction:column; }
   .activity-drawer{ position:static; width:auto; margin:18px; }
 }
+
+.version-note{
+  text-align:center; font-size:11px; color:var(--ink-soft);
+  padding:14px 0 18px; opacity:.7;
+}
