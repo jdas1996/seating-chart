@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reception Seating Chart</title>
-<link rel="stylesheet" href="style.css?v=9">
+<link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
 
@@ -81,14 +81,27 @@
   </div>
 </div>
 
-<div class="version-note">v9</div>
+<div id="group-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <h3>Edit group</h3>
+    <p>Change the group for <b id="group-guest-name"></b>. This syncs for both of you.</p>
+    <select id="group-select"></select>
+    <input type="text" id="group-new" placeholder="…or type a new group name">
+    <div class="modal-actions">
+      <button class="ghost" id="group-cancel">Cancel</button>
+      <button class="primary" id="group-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="version-note">v10</div>
 
 <!-- Firebase (compat SDK — no build step needed) -->
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 
-<script src="firebase-config.js?v=9"></script>
-<script src="guests.js?v=9"></script>
-<script src="app.js?v=9"></script>
+<script src="firebase-config.js?v=10"></script>
+<script src="guests.js?v=10"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>

@@ -28,6 +28,7 @@ function shortGroup(group){ return GROUP_SHORT[group] || group; }
 let db, presenceRef, connectedRef;
 let clientId, myName, myColor;
 let state = { seatSize: 10, tables: {} };
+let groupOverrides = {};   // synced edits to guests' groups, keyed by encoded name
 let presence = {};
 let dragGuestName = null;
 let localDragging = false;   // suppress re-renders while we drag, or the
@@ -121,6 +122,11 @@ function initRealtime(){
     }
   });
 
+  db.ref('groupOverrides').on('value', snap=>{
+    groupOverrides = snap.val() || {};
+    render();
+  });
+
   db.ref('activity').limitToLast(30).on('value', snap=>{
     const val = snap.val() || {};
     const items = Object.values(val).sort((a,b)=> (b.ts||0) - (a.ts||0));
@@ -137,8 +143,14 @@ function logActivity(text){
 }
 
 /* ---------------- data helpers ---------------- */
+function nameKey(name){
+  return name.replace(/[.#$/\[\]]/g, '_');   // Firebase keys can't contain these
+}
+
 function guestByName(name){
-  return GUESTS.find(g=>g.name===name) || {name, meal:''};
+  const g = GUESTS.find(g=>g.name===name) || {name, meal:''};
+  const override = groupOverrides[nameKey(name)];
+  return override ? Object.assign({}, g, {group: override}) : g;
 }
 
 function tableIdsSorted(){
@@ -166,6 +178,7 @@ function computeUnassigned(){
 function allGroups(){
   const set = new Set();
   GUESTS.forEach(g=>{ if(g.group) set.add(g.group); });
+  Object.values(groupOverrides).forEach(g=>{ if(g) set.add(g); });
   return [...set].sort();
 }
 
@@ -256,6 +269,16 @@ function makeGuestEl(name){
     tag.textContent = g.meal;
     el.appendChild(tag);
   }
+
+  const editBtn = document.createElement('button');
+  editBtn.className='edit-group';
+  editBtn.title='Edit group';
+  editBtn.textContent='✎';
+  editBtn.addEventListener('click', e=>{
+    e.stopPropagation();
+    openGroupEditor(name);
+  });
+  el.appendChild(editBtn);
 
   el.addEventListener('dragstart', e=>{
     dragGuestName = name;
@@ -404,6 +427,39 @@ function renderGroupFilter(){
     clear.addEventListener('click', ()=>{ activeGroups.clear(); render(); });
     bar.appendChild(clear);
   }
+}
+
+/* ---------------- group editor ---------------- */
+function openGroupEditor(name){
+  const g = guestByName(name);
+  const modal = document.getElementById('group-modal');
+  const select = document.getElementById('group-select');
+  const newInput = document.getElementById('group-new');
+  document.getElementById('group-guest-name').textContent = name;
+
+  select.innerHTML = '';
+  const noneOpt = document.createElement('option');
+  noneOpt.value = '';
+  noneOpt.textContent = '(no group)';
+  select.appendChild(noneOpt);
+  allGroups().forEach(group=>{
+    const opt = document.createElement('option');
+    opt.value = group;
+    opt.textContent = group;
+    if(group === g.group) opt.selected = true;
+    select.appendChild(opt);
+  });
+  newInput.value = '';
+  modal.classList.remove('hidden');
+
+  document.getElementById('group-cancel').onclick = ()=> modal.classList.add('hidden');
+  document.getElementById('group-save').onclick = ()=>{
+    const chosen = newInput.value.trim() || select.value;
+    modal.classList.add('hidden');
+    if(chosen === (g.group || '')) return;
+    db.ref('groupOverrides/' + nameKey(name)).set(chosen || null);
+    logActivity('<b>' + myName + '</b> changed <b>' + name + "</b>'s group to \"" + (chosen || 'none') + '"');
+  };
 }
 
 /* ---------------- presence + activity rendering ---------------- */

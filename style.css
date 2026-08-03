@@ -253,3 +253,14 @@ button.ghost{ border-color:var(--line); color:var(--ink-soft); }
 .group-chip.clear{
   border-color:#999; color:#777; border-style:dashed;
 }
+
+.guest .edit-group{
+  border:none; background:transparent; cursor:pointer; font-size:12px;
+  color:var(--ink-soft); opacity:0; padding:0 2px; margin-left:auto;
+}
+.guest:hover .edit-group{ opacity:.6; }
+.guest .edit-group:hover{ opacity:1; }
+.modal select, .modal input[type=text]{
+  width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:8px;
+  margin-bottom:10px; font-family:inherit; font-size:13px; background:#fff;
+}
