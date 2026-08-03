@@ -229,8 +229,9 @@ button.ghost{ border-color:var(--line); color:var(--ink-soft); }
 }
 
 .version-note{
-  text-align:center; font-size:11px; color:var(--ink-soft);
-  padding:14px 0 18px; opacity:.7;
+  position:fixed; left:10px; bottom:10px; z-index:80;
+  font-size:11px; color:var(--ink-soft); background:var(--cream, #faf6ef);
+  border:1px solid var(--line); border-radius:10px; padding:3px 10px; opacity:.85;
 }
 
 .guest .group-tag{
