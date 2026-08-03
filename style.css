@@ -232,3 +232,23 @@ button.ghost{ border-color:var(--line); color:var(--ink-soft); }
   text-align:center; font-size:11px; color:var(--ink-soft);
   padding:14px 0 18px; opacity:.7;
 }
+
+.guest .group-tag{
+  font-size:10px; color:#fff; padding:2px 7px; border-radius:10px;
+  margin-left:6px; white-space:nowrap; opacity:.9;
+}
+.group-filter{
+  display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 4px;
+}
+.group-filter.hidden{ display:none; }
+.group-chip{
+  font-size:11px; padding:3px 10px; border-radius:12px; cursor:pointer;
+  border:1.5px solid var(--chip-color); color:var(--chip-color);
+  background:transparent; font-family:inherit;
+}
+.group-chip.active{
+  background:var(--chip-color); color:#fff;
+}
+.group-chip.clear{
+  border-color:#999; color:#777; border-style:dashed;
+}

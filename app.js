@@ -4,6 +4,8 @@
    =========================================================== */
 
 const COLORS = ['#b8965a','#7a8c6c','#a05c5c','#5c7a9c','#9c6ca0','#c48a4a','#5c8c8a'];
+const GROUP_COLORS = ['#5c7a9c','#7a8c6c','#a05c5c','#9c6ca0','#c48a4a','#5c8c8a','#b8965a','#8a7a5c'];
+let activeGroups = new Set();   // multi-select group filter (local to this device)
 
 let db, presenceRef, connectedRef;
 let clientId, myName, myColor;
@@ -143,6 +145,17 @@ function computeUnassigned(){
   return GUESTS.map(g=>g.name).filter(n=>!seated.has(n));
 }
 
+function allGroups(){
+  const set = new Set();
+  GUESTS.forEach(g=>{ if(g.group) set.add(g.group); });
+  return [...set].sort();
+}
+
+function groupColor(group){
+  const groups = allGroups();
+  return GROUP_COLORS[Math.max(0, groups.indexOf(group)) % GROUP_COLORS.length];
+}
+
 function remoteDraggersOf(name){
   return Object.entries(presence)
     .filter(([id, p]) => id !== clientId && p.draggingGuest === name)
@@ -157,8 +170,13 @@ function render(){
   // pool
   const poolZone = document.getElementById('pool-zone');
   poolZone.innerHTML = '';
+  renderGroupFilter();
   const unassigned = computeUnassigned();
-  const poolNames = unassigned.filter(n=>n.toLowerCase().includes(search));
+  const poolNames = unassigned.filter(n=>{
+    if(!n.toLowerCase().includes(search)) return false;
+    if(activeGroups.size===0) return true;
+    return activeGroups.has(guestByName(n).group);
+  });
   if(poolNames.length===0){
     const hint = document.createElement('div');
     hint.className='empty-hint';
@@ -204,6 +222,14 @@ function makeGuestEl(name){
   const nameSpan = document.createElement('span');
   nameSpan.textContent = name;
   el.appendChild(nameSpan);
+
+  if(g.group){
+    const gtag = document.createElement('span');
+    gtag.className='group-tag';
+    gtag.style.background = groupColor(g.group);
+    gtag.textContent = g.group;
+    el.appendChild(gtag);
+  }
 
   if(g.meal){
     const tag = document.createElement('span');
@@ -329,6 +355,36 @@ function moveGuestToPool(name){
     return seats.filter(n=>n!==name);
   });
   logActivity('<b>' + myName + '</b> moved <b>' + name + '</b> back to Unassigned');
+}
+
+/* ---------------- group filter ---------------- */
+function renderGroupFilter(){
+  const bar = document.getElementById('group-filter');
+  const groups = allGroups();
+  bar.innerHTML = '';
+  if(groups.length===0){ bar.classList.add('hidden'); return; }
+  bar.classList.remove('hidden');
+
+  groups.forEach(group=>{
+    const chip = document.createElement('button');
+    chip.className='group-chip' + (activeGroups.has(group) ? ' active' : '');
+    chip.style.setProperty('--chip-color', groupColor(group));
+    chip.textContent = group;
+    chip.addEventListener('click', ()=>{
+      if(activeGroups.has(group)) activeGroups.delete(group);
+      else activeGroups.add(group);
+      render();
+    });
+    bar.appendChild(chip);
+  });
+
+  if(activeGroups.size>0){
+    const clear = document.createElement('button');
+    clear.className='group-chip clear';
+    clear.textContent='clear';
+    clear.addEventListener('click', ()=>{ activeGroups.clear(); render(); });
+    bar.appendChild(clear);
+  }
 }
 
 /* ---------------- presence + activity rendering ---------------- */
