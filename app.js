@@ -217,10 +217,13 @@ function render(){
   poolNames.forEach(name=>poolZone.appendChild(makeGuestEl(name)));
   document.getElementById('pool-count').textContent = unassigned.length + ' guest' + (unassigned.length===1?'':'s');
 
-  // tables
+  // tables: while searching, hide tables with no matching guest;
+  // matching tables still show their full seat list
   const wrap = document.getElementById('tables-wrap');
   wrap.innerHTML = '';
   tableIdsSorted().forEach(id=>{
+    const seats = state.tables[id].seats || [];
+    if(search && !seats.some(n=>n.toLowerCase().includes(search))) return;
     wrap.appendChild(makeTableEl(id, state.tables[id], search));
   });
 
@@ -341,19 +344,17 @@ function makeTableEl(id, table, search){
   zone.dataset.tableId = id;
 
   const seats = table.seats || [];
-  const visibleSeats = seats.filter(n=>n.toLowerCase().includes(search));
   if(seats.length===0){
     const hint = document.createElement('div');
     hint.className='empty-hint';
     hint.textContent='Drop guests here';
     zone.appendChild(hint);
-  } else if(visibleSeats.length===0 && search){
-    const hint = document.createElement('div');
-    hint.className='empty-hint';
-    hint.textContent='No matches at this table';
-    zone.appendChild(hint);
   } else {
-    visibleSeats.forEach(name=>zone.appendChild(makeGuestEl(name)));
+    seats.forEach(name=>{
+      const el = makeGuestEl(name);
+      if(search && name.toLowerCase().includes(search)) el.classList.add('search-hit');
+      zone.appendChild(el);
+    });
   }
 
   zone.addEventListener('dragover', e=>{ e.preventDefault(); zone.classList.add('dragover'); });

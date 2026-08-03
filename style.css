@@ -264,3 +264,8 @@ button.ghost{ border-color:var(--line); color:var(--ink-soft); }
   width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:8px;
   margin-bottom:10px; font-family:inherit; font-size:13px; background:#fff;
 }
+
+.guest.search-hit{
+  outline:2px solid var(--gold, #b8965a); outline-offset:-1px;
+  background:#fdf8ec;
+}
