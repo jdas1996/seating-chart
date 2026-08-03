@@ -7,6 +7,24 @@ const COLORS = ['#b8965a','#7a8c6c','#a05c5c','#5c7a9c','#9c6ca0','#c48a4a','#5c
 const GROUP_COLORS = ['#5c7a9c','#7a8c6c','#a05c5c','#9c6ca0','#c48a4a','#5c8c8a','#b8965a','#8a7a5c'];
 let activeGroups = new Set();   // multi-select group filter (local to this device)
 
+// short labels for the small chips on guest cards
+const GROUP_SHORT = {
+  "Bridesmaid/Bridesmaid Family": "BM",
+  "Groomsmen/Groomsmen Family": "GM",
+  "CityLine": "CL",
+  "I Don't Know": "?",
+  "Joncy Family": "JY FAM",
+  "Joncy Friends (old)": "OLD",
+  "Joncy Friends (young)": "YOUNG",
+  "Joncy's Parents Connect": "JY PARENTS",
+  "MidOpt": "MidOpt",
+  "Novena's Family": "NV FAM",
+  "Novena's Friend": "NV FRIEND",
+  "Novena's Mom Connect": "NV MOM",
+  "Tamil Church": "TAMIL"
+};
+function shortGroup(group){ return GROUP_SHORT[group] || group; }
+
 let db, presenceRef, connectedRef;
 let clientId, myName, myColor;
 let state = { seatSize: 10, tables: {} };
@@ -223,11 +241,12 @@ function makeGuestEl(name){
   nameSpan.textContent = name;
   el.appendChild(nameSpan);
 
-  if(g.group){
+  // group chips only appear while filtering, to keep the board clean
+  if(g.group && activeGroups.size>0){
     const gtag = document.createElement('span');
     gtag.className='group-tag';
     gtag.style.background = groupColor(g.group);
-    gtag.textContent = g.group;
+    gtag.textContent = shortGroup(g.group);
     el.appendChild(gtag);
   }
 
