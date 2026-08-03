@@ -217,13 +217,16 @@ function render(){
   poolNames.forEach(name=>poolZone.appendChild(makeGuestEl(name)));
   document.getElementById('pool-count').textContent = unassigned.length + ' guest' + (unassigned.length===1?'':'s');
 
-  // tables: while searching, hide tables with no matching guest;
-  // matching tables still show their full seat list
+  // tables: while searching, tables with matches come first; the rest
+  // (including empty ones) stay visible below as drop targets
   const wrap = document.getElementById('tables-wrap');
   wrap.innerHTML = '';
-  tableIdsSorted().forEach(id=>{
-    const seats = state.tables[id].seats || [];
-    if(search && !seats.some(n=>n.toLowerCase().includes(search))) return;
+  let ids = tableIdsSorted();
+  if(search){
+    const hasMatch = id => (state.tables[id].seats || []).some(n=>n.toLowerCase().includes(search));
+    ids = ids.filter(hasMatch).concat(ids.filter(id=>!hasMatch(id)));
+  }
+  ids.forEach(id=>{
     wrap.appendChild(makeTableEl(id, state.tables[id], search));
   });
 
