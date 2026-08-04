@@ -91,6 +91,23 @@ nameSubmit.addEventListener('click', ()=>{
 nameInput.addEventListener('keydown', e=>{ if(e.key==='Enter') nameSubmit.click(); });
 
 /* ---------------- realtime wiring ---------------- */
+// one-time fixes for misspelled names that are already seated: rename in
+// place so seat assignments are preserved (idempotent, safe on both clients)
+const NAME_FIXES = {
+  'Mohan Daas': 'Mohan Doss',
+  'Jemima Doss': 'Jemima Mohan',
+  'Josiah Mathew': 'Josiah Varghese'
+};
+function applyNameFixes(){
+  Object.entries(state.tables).forEach(([id, t])=>{
+    if((t.seats || []).some(n=>NAME_FIXES[n])){
+      db.ref('seatingChart/tables/' + id + '/seats').transaction(seats=>{
+        return (seats || []).map(n=>NAME_FIXES[n] || n);
+      });
+    }
+  });
+}
+
 function initRealtime(){
   const chartRef = db.ref('seatingChart');
   chartRef.on('value', snap=>{
@@ -98,6 +115,7 @@ function initRealtime(){
     state.seatSize = val.seatSize || 10;
     state.tables = val.tables || {};
     document.getElementById('seat-size').value = state.seatSize;
+    applyNameFixes();
     render();
   });
 
