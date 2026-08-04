@@ -29,6 +29,7 @@ let db, presenceRef, connectedRef;
 let clientId, myName, myColor;
 let state = { seatSize: 10, tables: {} };
 let groupOverrides = {};   // synced edits to guests' groups, keyed by encoded name
+let guestExtras = {};      // guests added via RSVP uploads, synced in Firebase
 let presence = {};
 let dragGuestName = null;
 let localDragging = false;   // suppress re-renders while we drag, or the
@@ -127,6 +128,11 @@ function initRealtime(){
     render();
   });
 
+  db.ref('guestExtras').on('value', snap=>{
+    guestExtras = snap.val() || {};
+    render();
+  });
+
   db.ref('activity').limitToLast(30).on('value', snap=>{
     const val = snap.val() || {};
     const items = Object.values(val).sort((a,b)=> (b.ts||0) - (a.ts||0));
@@ -136,6 +142,7 @@ function initRealtime(){
   wireToolbar();
   wirePoolDrop();
   wireImportModal();
+  wireRsvpUpload();
 }
 
 function logActivity(text){
@@ -147,8 +154,23 @@ function nameKey(name){
   return name.replace(/[.#$/\[\]]/g, '_');   // Firebase keys can't contain these
 }
 
+function normName(name){
+  return name.replace(/^(Mr|Mrs|Ms|Dr|Rev|Pastor)\.\s+/, '').trim().toLowerCase();
+}
+
+// full guest roster: the built-in list plus any added via RSVP uploads
+function rosterGuests(){
+  const seen = new Set();
+  const out = [];
+  GUESTS.concat(Object.values(guestExtras)).forEach(g=>{
+    const k = normName(g.name);
+    if(!seen.has(k)){ seen.add(k); out.push(g); }
+  });
+  return out;
+}
+
 function guestByName(name){
-  const g = GUESTS.find(g=>g.name===name) || {name, meal:''};
+  const g = rosterGuests().find(g=>g.name===name) || {name, meal:''};
   const override = groupOverrides[nameKey(name)];
   return override ? Object.assign({}, g, {group: override}) : g;
 }
@@ -172,12 +194,12 @@ function findTableOf(name){
 function computeUnassigned(){
   const seated = new Set();
   Object.values(state.tables).forEach(t=>(t.seats||[]).forEach(n=>seated.add(n)));
-  return GUESTS.map(g=>g.name).filter(n=>!seated.has(n));
+  return rosterGuests().map(g=>g.name).filter(n=>!seated.has(n));
 }
 
 function allGroups(){
   const set = new Set();
-  GUESTS.forEach(g=>{ if(g.group) set.add(g.group); });
+  rosterGuests().forEach(g=>{ if(g.group) set.add(g.group); });
   Object.values(groupOverrides).forEach(g=>{ if(g) set.add(g); });
   return [...set].sort();
 }
@@ -231,7 +253,7 @@ function render(){
   });
 
   // stats
-  const seatedCount = GUESTS.length - unassigned.length;
+  const seatedCount = rosterGuests().length - unassigned.length;
   document.getElementById('stat-seated').textContent = seatedCount;
   document.getElementById('stat-unseated').textContent = unassigned.length;
   document.getElementById('stat-tables').textContent = Object.keys(state.tables).length;
@@ -574,6 +596,67 @@ function wirePoolDrop(){
     e.preventDefault();
     poolZone.classList.remove('dragover');
     if(dragGuestName){ moveGuestToPool(dragGuestName); dragGuestName=null; }
+  });
+}
+
+/* ---------------- RSVP export upload (additive only) ---------------- */
+function wireRsvpUpload(){
+  const input = document.getElementById('rsvp-file');
+  document.getElementById('rsvp-upload-btn').addEventListener('click', ()=> input.click());
+
+  input.addEventListener('change', ()=>{
+    const file = input.files[0];
+    input.value = '';
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = e=>{
+      let rows;
+      try{
+        const wb = XLSX.read(e.target.result, {type:'array'});
+        rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:''});
+      }catch(err){
+        alert('Could not read that file. Make sure it is the RSVP export (.xlsx or .csv).');
+        return;
+      }
+      if(!rows.length || !('Reception' in rows[0]) || !('First Name' in rows[0])){
+        alert('That file does not look like the RSVP export — expected columns like "First Name", "Reception", "Meal Choice".');
+        return;
+      }
+
+      const attending = {};
+      rows.forEach(r=>{
+        if(String(r['Reception']).trim() !== 'Attending') return;
+        const name = ['Title','First Name','Last Name','Suffix']
+          .map(c=>String(r[c]||'').trim()).filter(Boolean).join(' ');
+        if(!name) return;
+        let meal = String(r['Meal Choice']||'').trim();
+        if(meal === 'No Response') meal = '';
+        attending[name] = meal;
+      });
+
+      const roster = rosterGuests();
+      const have = new Set(roster.map(g=>normName(g.name)));
+      const attNorm = new Set(Object.keys(attending).map(normName));
+      const added = Object.keys(attending).filter(n=>!have.has(normName(n)));
+      const noLonger = roster.map(g=>g.name).filter(n=>!attNorm.has(normName(n)));
+
+      let msg = 'This update is additive only — nobody is removed and no seats change.\n\n';
+      msg += added.length
+        ? 'Will ADD ' + added.length + ' new attending guest(s):\n• ' + added.join('\n• ')
+        : 'No new attending guests found.';
+      if(noLonger.length){
+        msg += '\n\nFYI — on the board but NOT attending in this file (left untouched; remove by hand if correct):\n• ' + noLonger.join('\n• ');
+      }
+      if(added.length===0){ alert(msg); return; }
+      if(!confirm(msg + '\n\nAdd them?')) return;
+
+      const updates = {};
+      added.forEach(n=>{ updates['guestExtras/' + nameKey(n)] = { name: n, meal: attending[n] }; });
+      db.ref().update(updates).then(()=>{
+        logActivity('<b>' + myName + '</b> uploaded an RSVP export — added ' + added.length + ' guest(s)');
+      });
+    };
+    reader.readAsArrayBuffer(file);
   });
 }
 
