@@ -96,7 +96,8 @@ nameInput.addEventListener('keydown', e=>{ if(e.key==='Enter') nameSubmit.click(
 const NAME_FIXES = {
   'Mohan Daas': 'Mohan Doss',
   'Jemima Doss': 'Jemima Mohan',
-  'Josiah Mathew': 'Josiah Varghese'
+  'Josiah Mathew': 'Josiah Varghese',
+  'Rhea Mathew': 'Rhea John'
 };
 function applyNameFixes(){
   Object.entries(state.tables).forEach(([id, t])=>{
