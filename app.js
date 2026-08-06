@@ -30,6 +30,8 @@ let clientId, myName, myColor;
 let state = { seatSize: 10, tables: {} };
 let groupOverrides = {};   // synced edits to guests' groups, keyed by encoded name
 let guestExtras = {};      // guests added via RSVP uploads, synced in Firebase
+let tableMap = {};         // physical positions of tables on the room map {id:{x,y}}
+let mapMode = false;
 let presence = {};
 let dragGuestName = null;
 let localDragging = false;   // suppress re-renders while we drag, or the
@@ -152,6 +154,11 @@ function initRealtime(){
     render();
   });
 
+  db.ref('tableMap').on('value', snap=>{
+    tableMap = snap.val() || {};
+    render();
+  });
+
   db.ref('activity').limitToLast(30).on('value', snap=>{
     const val = snap.val() || {};
     const items = Object.values(val).sort((a,b)=> (b.ts||0) - (a.ts||0));
@@ -261,15 +268,22 @@ function render(){
   // tables: while searching, tables with matches come first; the rest
   // (including empty ones) stay visible below as drop targets
   const wrap = document.getElementById('tables-wrap');
-  wrap.innerHTML = '';
-  let ids = tableIdsSorted();
-  if(search){
-    const hasMatch = id => (state.tables[id].seats || []).some(n=>n.toLowerCase().includes(search));
-    ids = ids.filter(hasMatch).concat(ids.filter(id=>!hasMatch(id)));
+  const mapView = document.getElementById('map-view');
+  wrap.classList.toggle('hidden', mapMode);
+  mapView.classList.toggle('hidden', !mapMode);
+  if(mapMode){
+    renderMap(search);
+  } else {
+    wrap.innerHTML = '';
+    let ids = tableIdsSorted();
+    if(search){
+      const hasMatch = id => (state.tables[id].seats || []).some(n=>n.toLowerCase().includes(search));
+      ids = ids.filter(hasMatch).concat(ids.filter(id=>!hasMatch(id)));
+    }
+    ids.forEach(id=>{
+      wrap.appendChild(makeTableEl(id, state.tables[id], search));
+    });
   }
-  ids.forEach(id=>{
-    wrap.appendChild(makeTableEl(id, state.tables[id], search));
-  });
 
   // stats
   const seatedCount = rosterGuests().length - unassigned.length;
@@ -473,6 +487,81 @@ function renderGroupFilter(){
     bar.appendChild(clear);
   }
 }
+
+/* ---------------- room map view ---------------- */
+function renderMap(search){
+  const canvas = document.getElementById('map-canvas');
+  canvas.innerHTML = '';
+  const ids = tableIdsSorted();
+  ids.forEach((id, i)=>{
+    const table = state.tables[id];
+    const pos = tableMap[id] || { x: 0.08 + (i % 5) * 0.19, y: 0.08 + Math.floor(i / 5) * 0.24 };
+    const el = document.createElement('div');
+    el.className = 'map-table';
+    el.style.left = (pos.x * 100) + '%';
+    el.style.top  = (pos.y * 100) + '%';
+
+    const count = (table.seats || []).length;
+    const cap = state.seatSize;
+    if(count === cap) el.classList.add('full');
+    if(count > cap) el.classList.add('over');
+    if(search && (table.seats || []).some(n=>n.toLowerCase().includes(search))) el.classList.add('search-hit');
+
+    const title = document.createElement('div');
+    title.className = 'map-table-title';
+    title.textContent = table.title || 'Table';
+    const cnt = document.createElement('div');
+    cnt.className = 'map-table-count';
+    cnt.textContent = count + '/' + cap;
+    el.appendChild(title);
+    el.appendChild(cnt);
+
+    // reposition by dragging the circle (pointer events, works on touch too)
+    el.addEventListener('pointerdown', e=>{
+      if(dragGuestName) return;            // a guest card drag is in progress
+      e.preventDefault();
+      el.setPointerCapture(e.pointerId);
+      const rect = canvas.getBoundingClientRect();
+      const startX = e.clientX, startY = e.clientY;
+      const origX = pos.x, origY = pos.y;
+      let moved = false;
+      const onMove = ev=>{
+        const nx = Math.min(0.92, Math.max(0, origX + (ev.clientX - startX) / rect.width));
+        const ny = Math.min(0.88, Math.max(0, origY + (ev.clientY - startY) / rect.height));
+        if(Math.abs(ev.clientX - startX) + Math.abs(ev.clientY - startY) > 4) moved = true;
+        el.style.left = (nx * 100) + '%';
+        el.style.top  = (ny * 100) + '%';
+        el._nx = nx; el._ny = ny;
+      };
+      const onUp = ()=>{
+        el.removeEventListener('pointermove', onMove);
+        el.removeEventListener('pointerup', onUp);
+        if(moved) db.ref('tableMap/' + id).set({ x: el._nx, y: el._ny });
+      };
+      el.addEventListener('pointermove', onMove);
+      el.addEventListener('pointerup', onUp);
+    });
+
+    // seat a guest by dropping their card on a map table
+    el.addEventListener('dragover', e=>{ e.preventDefault(); el.classList.add('dragover'); });
+    el.addEventListener('dragleave', ()=>el.classList.remove('dragover'));
+    el.addEventListener('drop', e=>{
+      e.preventDefault();
+      el.classList.remove('dragover');
+      if(!dragGuestName) return;
+      moveGuestToTable(dragGuestName, id, table.title);
+      dragGuestName = null;
+    });
+
+    canvas.appendChild(el);
+  });
+}
+
+document.getElementById('map-toggle').addEventListener('click', ()=>{
+  mapMode = !mapMode;
+  document.getElementById('map-toggle').textContent = mapMode ? 'List view' : 'Map view';
+  render();
+});
 
 /* ---------------- group editor ---------------- */
 function openGroupEditor(name){

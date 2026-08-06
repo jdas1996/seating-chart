@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reception Seating Chart</title>
-<link rel="stylesheet" href="style.css?v=16">
+<link rel="stylesheet" href="style.css?v=17">
 </head>
 <body>
 
@@ -41,6 +41,7 @@
   <input type="number" id="seat-size" value="10" min="2" max="20">
   <button id="auto-fill">Auto-fill empty seats</button>
   <button class="ghost" id="reset-btn">Reset to unassigned</button>
+  <button class="ghost" id="map-toggle">Map view</button>
   <button class="ghost" id="import-btn">Import old layout…</button>
   <button class="ghost" id="rsvp-upload-btn">Upload RSVP export…</button>
   <input type="file" id="rsvp-file" accept=".xlsx,.xls,.csv" style="display:none">
@@ -61,6 +62,10 @@
   </div>
 
   <div class="tables-wrap" id="tables-wrap"></div>
+  <div class="map-view hidden" id="map-view">
+    <div class="map-hint">Drag circles to match your room. Drop a guest name onto a table to seat them.</div>
+    <div id="map-canvas" class="map-canvas"></div>
+  </div>
 </div>
 
 <div class="activity-drawer" id="activity-drawer">
@@ -96,15 +101,15 @@
   </div>
 </div>
 
-<div class="version-note">v16</div>
+<div class="version-note">v17</div>
 
 <!-- Firebase (compat SDK — no build step needed) -->
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 
-<script src="firebase-config.js?v=16"></script>
-<script src="guests.js?v=16"></script>
-<script src="app.js?v=16"></script>
+<script src="firebase-config.js?v=17"></script>
+<script src="guests.js?v=17"></script>
+<script src="app.js?v=17"></script>
 </body>
 </html>

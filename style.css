@@ -269,3 +269,29 @@ button.ghost{ border-color:var(--line); color:var(--ink-soft); }
   outline:2px solid var(--gold, #b8965a); outline-offset:-1px;
   background:#fdf8ec;
 }
+
+.map-view{ flex:1; margin:18px; }
+.map-view.hidden{ display:none; }
+.map-hint{ font-size:12px; color:var(--ink-soft); margin-bottom:8px; }
+.map-canvas{
+  position:relative; width:100%; height:calc(100vh - 240px); min-height:420px;
+  border:1.5px dashed var(--line); border-radius:14px;
+  background:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size:40px 40px; background-color:#fdfaf3; overflow:hidden;
+}
+.map-table{
+  position:absolute; width:96px; height:96px; border-radius:50%;
+  background:#fff; border:2px solid var(--line);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  cursor:grab; user-select:none; touch-action:none; text-align:center;
+  box-shadow:0 3px 10px rgba(0,0,0,.08); padding:6px;
+}
+.map-table:active{ cursor:grabbing; }
+.map-table.full{ border-color:#b8965a; background:#fdf8ec; }
+.map-table.over{ border-color:#a05c5c; background:#fbeeee; }
+.map-table.dragover{ border-color:#7a8c6c; background:#eef4ea; transform:scale(1.06); }
+.map-table.search-hit{ outline:3px solid var(--gold, #b8965a); outline-offset:2px; }
+.map-table-title{ font-size:11px; line-height:1.25; max-height:42px; overflow:hidden; }
+.map-table-count{ font-size:10px; color:var(--ink-soft); margin-top:3px; }
