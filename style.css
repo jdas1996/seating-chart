@@ -295,3 +295,10 @@ button.ghost{ border-color:var(--line); color:var(--ink-soft); }
 .map-table.search-hit{ outline:3px solid var(--gold, #b8965a); outline-offset:2px; }
 .map-table-title{ font-size:11px; line-height:1.25; max-height:42px; overflow:hidden; }
 .map-table-count{ font-size:10px; color:var(--ink-soft); margin-top:3px; }
+
+.table-num{
+  min-width:24px; height:24px; border-radius:50%; background:var(--gold, #b8965a);
+  color:#fff; font-size:12px; display:flex; align-items:center; justify-content:center;
+  margin-right:8px; flex-shrink:0;
+}
+.map-table-num{ font-size:16px; font-weight:600; color:var(--gold, #b8965a); line-height:1; }

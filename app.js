@@ -210,6 +210,10 @@ function tableIdsSorted(){
   });
 }
 
+function tableNumber(id){
+  return tableIdsSorted().indexOf(id) + 1;
+}
+
 function findTableOf(name){
   for(const id of Object.keys(state.tables)){
     const seats = state.tables[id].seats || [];
@@ -366,6 +370,11 @@ function makeTableEl(id, table, search){
   const head = document.createElement('div');
   head.className='table-head';
 
+  const numBadge = document.createElement('div');
+  numBadge.className='table-num';
+  numBadge.textContent = tableNumber(id);
+  head.appendChild(numBadge);
+
   const titleInput = document.createElement('input');
   titleInput.className='table-title';
   titleInput.value = table.title || 'Table';
@@ -508,12 +517,16 @@ function renderMap(search){
     if(count > cap) el.classList.add('over');
     if(search && (table.seats || []).some(n=>n.toLowerCase().includes(search))) el.classList.add('search-hit');
 
+    const num = document.createElement('div');
+    num.className = 'map-table-num';
+    num.textContent = tableNumber(id);
     const title = document.createElement('div');
     title.className = 'map-table-title';
     title.textContent = table.title || 'Table';
     const cnt = document.createElement('div');
     cnt.className = 'map-table-count';
     cnt.textContent = count + '/' + cap;
+    el.appendChild(num);
     el.appendChild(title);
     el.appendChild(cnt);
 
@@ -797,7 +810,9 @@ function downloadMealCounts(){
     const total = (t.seats||[]).length;
     grand += total;
     cols.forEach(c=>totals[c]+=counts[c]);
-    rows.push([t.title||'Table', ...cols.map(c=>counts[c]||''), total, notes.join(' | ')]);
+    const label = /head/i.test(t.title||'') ? 'Head Table' : tableNumber(id);
+    const comment = [(t.title||''), notes.join(' | ')].filter(Boolean).join(' — ');
+    rows.push([label, ...cols.map(c=>counts[c]||''), total, comment]);
   });
 
   // anyone not seated yet, so the venue sheet never silently under-counts
