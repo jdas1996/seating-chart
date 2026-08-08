@@ -99,7 +99,8 @@ const NAME_FIXES = {
   'Mohan Daas': 'Mohan Doss',
   'Jemima Doss': 'Jemima Mohan',
   'Josiah Mathew': 'Josiah Varghese',
-  'Rhea Mathew': 'Rhea John'
+  'Rhea Mathew': 'Rhea John',
+  'Jerry Jeevan': 'Jerill Jeevan'
 };
 function applyNameFixes(){
   Object.entries(state.tables).forEach(([id, t])=>{
@@ -685,6 +686,8 @@ function wireToolbar(){
     logActivity('<b>' + myName + '</b> auto-filled empty seats');
   });
 
+  document.getElementById('meal-count-btn').addEventListener('click', downloadMealCounts);
+
   document.getElementById('reset-btn').addEventListener('click', ()=>{
     if(!confirm("This clears every table's seats and moves everyone back to Unassigned. Table names stay. Continue?")) return;
     const updates = {};
@@ -766,6 +769,57 @@ function wireRsvpUpload(){
     };
     reader.readAsArrayBuffer(file);
   });
+}
+
+/* ---------------- venue meal count export ---------------- */
+const MEAL_TO_VENUE = { steak:'Beef', chicken:'Chicken', lamb:'Lamb', salmon:'Fish', veggie:'Veg', kids:'Kids' };
+function downloadMealCounts(){
+  const cols = ['Beef','Chicken','Lamb','Fish','Veg','Kids'];
+  const rows = [['TABLE','#Beef','#Chicken','#Lamb','#Fish','#Veg','#Kids','Total','COMMENTS']];
+  const totals = {Beef:0,Chicken:0,Lamb:0,Fish:0,Veg:0,Kids:0};
+  let grand = 0;
+
+  // head table (any table whose name contains "head") first, then board order
+  let ids = tableIdsSorted();
+  ids = ids.filter(id=>/head/i.test(state.tables[id].title||''))
+       .concat(ids.filter(id=>!/head/i.test(state.tables[id].title||'')));
+
+  ids.forEach(id=>{
+    const t = state.tables[id];
+    const counts = {Beef:0,Chicken:0,Lamb:0,Fish:0,Veg:0,Kids:0};
+    const notes = [];
+    (t.seats||[]).forEach(n=>{
+      const g = guestByName(n);
+      const col = MEAL_TO_VENUE[g.meal];
+      if(col) counts[col]++;
+      if(g.diet && !notes.includes(g.diet)) notes.push(g.diet);
+    });
+    const total = (t.seats||[]).length;
+    grand += total;
+    cols.forEach(c=>totals[c]+=counts[c]);
+    rows.push([t.title||'Table', ...cols.map(c=>counts[c]||''), total, notes.join(' | ')]);
+  });
+
+  // anyone not seated yet, so the venue sheet never silently under-counts
+  const unassigned = computeUnassigned();
+  if(unassigned.length){
+    const counts = {Beef:0,Chicken:0,Lamb:0,Fish:0,Veg:0,Kids:0};
+    unassigned.forEach(n=>{
+      const col = MEAL_TO_VENUE[guestByName(n).meal];
+      if(col) counts[col]++;
+    });
+    cols.forEach(c=>totals[c]+=counts[c]);
+    grand += unassigned.length;
+    rows.push(['NOT YET SEATED', ...cols.map(c=>counts[c]||''), unassigned.length, 'Assign before sending!']);
+  }
+
+  rows.push(['TOTALS', ...cols.map(c=>totals[c]), grand, '']);
+
+  const wsx = XLSX.utils.aoa_to_sheet(rows);
+  wsx['!cols'] = [{wch:22},{wch:7},{wch:9},{wch:7},{wch:7},{wch:6},{wch:6},{wch:7},{wch:60}];
+  const wbx = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wbx, wsx, 'Meal Counts');
+  XLSX.writeFile(wbx, 'Christal_Yesudasan_Meal_Counts.xlsx');
 }
 
 /* ---------------- import old single-device layout ---------------- */
