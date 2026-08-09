@@ -182,6 +182,15 @@ function initRealtime(){
      backup — the two are not interchangeable, so nothing reads it any more. */
   db.ref('tablePos').on('value', snap=>{
     tablePos = snap.val() || {};
+    /* rescue anything a past glitch wrote outside the room: back to the bin,
+       group intact (idempotent — both clients write the same repair) */
+    const bad = Object.entries(tablePos).filter(([,p])=>!p || !inRoom(p.x, p.y));
+    if(bad.length){
+      const updates = {};
+      bad.forEach(([id])=>{ updates['tablePos/' + id] = null; updates['binned/' + id] = true; });
+      db.ref().update(updates);
+      return;
+    }
     render();
   });
 
@@ -291,6 +300,13 @@ function tableNumber(id){
 }
 
 // per-table capacity (8–12); falls back to the global default for old tables
+/* The room's coordinate bounds. Any drag that computes a position outside
+   them is a glitched drag — discard it instead of writing, so nothing can
+   ever teleport to the top-left corner again. */
+function inRoom(x, y){
+  return Number.isFinite(x) && Number.isFinite(y) && x > 15 && x < 1090 && y > 305 && y < 668;
+}
+
 function tableCap(t){
   if(t && t.cap) return t.cap;
   if(t && /^sweetheart/i.test(t.title || '')) return 2;   // just Joncy & Novena
@@ -661,7 +677,7 @@ function renderMap(search){
     if(search && seats.some(n=>n.toLowerCase().includes(search))) searchHit[id] = true;
     return {
       id: id,
-      title: '',   // names stay off the map — numbers only
+      title: table.title || '',   // group name in small letters under the table
       x: pos.x,
       y: pos.y,
       r: /^sweetheart/i.test(table.title || '') ? FloorPlan.SWEET_POS.r : 14,
@@ -691,13 +707,13 @@ function renderMap(search){
     slots: emptySlots,
     furniturePos: furniPos,
     onMoveFurn: (fid, x, y)=>{
-      if(layoutLock){ render(); return; }
+      if(layoutLock || !inRoom(x, y)){ render(); return; }
       db.ref('furniPos/' + fid).set({ x, y });
     },
     guestDragActive: ()=>!!dragGuestName || !!dragTableId,
     onSelect: id=>openTableDetail(id),
     onMove: (id, x, y)=>{
-      if(layoutLock){ render(); return; }
+      if(layoutLock || !inRoom(x, y)){ render(); return; }
       db.ref('tablePos/' + id).set({ x:x, y:y });
     },
     onDropGroup: i=>{
@@ -705,7 +721,7 @@ function renderMap(search){
     },
     onSlotClick: i=>openSpotDialog(i),
     onMoveSlot: (i, x, y)=>{
-      if(layoutLock){ render(); return; }
+      if(layoutLock || !inRoom(x, y)){ render(); return; }
       const next = mapSlots.slice();
       next[i] = Object.assign({}, next[i], { x, y });
       db.ref('mapSlots').set(next);
@@ -783,6 +799,7 @@ function assignGroupToSlot(tableId, slotIdx){
   const occ = slotOccupants();
   if(occ[slotIdx] && occ[slotIdx] !== tableId){ alert('That spot is taken — clear it first.'); return; }
   const s = mapSlots[slotIdx];
+  if(!s || !inRoom(s.x, s.y)){ alert('That spot has bad coordinates — tell Joncy which number it was.'); return; }
   db.ref().update({
     ['tablePos/' + tableId]: { x:s.x, y:s.y },
     ['binned/' + tableId]: null
@@ -828,7 +845,7 @@ function renderAssign(search){
     const seats = table.seats || [];
     if(search && seats.some(n=>n.toLowerCase().includes(search))) searchHit[id] = true;
     tables.push({
-      id, title: '',
+      id, title: table.title || '',
       x: mapSlots[i].x, y: mapSlots[i].y,
       r: /^sweetheart/i.test(table.title||'') ? FloorPlan.SWEET_POS.r : 14,
       count: seats.length, cap: tableCap(table), label: String(nums[i]||'')
@@ -849,7 +866,7 @@ function renderAssign(search){
     },
     furniturePos: furniPos,
     onMoveFurn: (fid, x, y)=>{
-      if(layoutLock){ render(); return; }
+      if(layoutLock || !inRoom(x, y)){ render(); return; }
       db.ref('furniPos/' + fid).set({ x, y });
     },
 
