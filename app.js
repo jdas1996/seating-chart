@@ -330,7 +330,9 @@ function remoteDraggersOf(name){
 function render(){
   if(localDragging){ pendingRender = true; return; }
   numberCache = null;                 // positions or tables may have changed
-  const search = document.getElementById('search').value.trim().toLowerCase();
+  const search = (viewMode === 'list'
+    ? document.getElementById('search').value
+    : document.getElementById('bin-search').value).trim().toLowerCase();
 
   // pool
   const poolZone = document.getElementById('pool-zone');
@@ -894,9 +896,20 @@ function renderBin(){
   const zone = document.getElementById('bin-zone');
   zone.innerHTML = '';
   const occupiedIds = new Set(Object.values(slotOccupants()));
-  const binIds = tableIdsSorted().filter(id=>!occupiedIds.has(id));
+  let binIds = tableIdsSorted().filter(id=>!occupiedIds.has(id));
   document.getElementById('bin-count').textContent =
     binIds.length ? binIds.length + ' group' + (binIds.length===1?'':'s') + ' to place' : 'All groups placed 🎉';
+
+  /* a guest search floats their group to the top, highlighted */
+  const q = document.getElementById('bin-search').value.trim().toLowerCase();
+  const hits = {};
+  if(q){
+    binIds.forEach(id=>{
+      const m = ((state.tables[id]||{}).seats||[]).find(n=>n.toLowerCase().includes(q));
+      if(m) hits[id] = m;
+    });
+    binIds = binIds.filter(id=>hits[id]).concat(binIds.filter(id=>!hits[id]));
+  }
 
   binIds.forEach(id=>{
     const t = state.tables[id] || {};
@@ -912,6 +925,13 @@ function renderBin(){
     meta.textContent = seats.length + ' guests' + (seats.length ? ' — ' + mealSummary(seats) : '');
     card.appendChild(title);
     card.appendChild(meta);
+    if(hits[id]){
+      card.classList.add('search-hit');
+      const found = document.createElement('div');
+      found.className = 'bin-meta bin-found';
+      found.textContent = '→ ' + hits[id];
+      card.appendChild(found);
+    }
     card.addEventListener('dragstart', e=>{
       dragTableId = id;
       e.dataTransfer.effectAllowed = 'move';
@@ -1108,6 +1128,7 @@ document.getElementById('activity-toggle').addEventListener('click', ()=>{
 /* ---------------- toolbar ---------------- */
 function wireToolbar(){
   document.getElementById('search').addEventListener('input', render);
+  document.getElementById('bin-search').addEventListener('input', render);
 
   document.getElementById('add-table').addEventListener('click', ()=>{
     const n = Object.keys(state.tables).length + 1;

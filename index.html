@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reception Seating Chart</title>
-<link rel="stylesheet" href="style.css?v=29">
+<link rel="stylesheet" href="style.css?v=30">
 </head>
 <body>
 
@@ -70,10 +70,12 @@
   <div class="pool hidden" id="bin-panel">
     <h2>Table Groups Bin</h2>
     <div class="count" id="bin-count"></div>
+    <input type="text" id="bin-search" placeholder="Search a guest to find their group…">
     <div id="bin-zone"></div>
     <div class="meal-key">
-      <div>Drag a group onto a numbered spot on the map to assign it that table number.</div>
-      <div style="margin-top:6px;">Click a placed group to send it back here.</div>
+      <div>Drag a group onto a numbered spot to assign it that table number.</div>
+      <div style="margin-top:6px;">To move a placed group: click its table on the map, then
+        "Remove from map (keeps group)" — it comes back here to re-place.</div>
     </div>
   </div>
 
@@ -141,17 +143,17 @@
   </div>
 </div>
 
-<div class="version-note">v29</div>
+<div class="version-note">v30</div>
 
 <!-- Firebase (compat SDK — no build step needed) -->
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 
-<script src="firebase-config.js?v=29"></script>
-<script src="guests.js?v=29"></script>
-<script src="restore-snapshot.js?v=29"></script>
-<script src="floorplan.js?v=29"></script>
-<script src="app.js?v=29"></script>
+<script src="firebase-config.js?v=30"></script>
+<script src="guests.js?v=30"></script>
+<script src="restore-snapshot.js?v=30"></script>
+<script src="floorplan.js?v=30"></script>
+<script src="app.js?v=30"></script>
 </body>
 </html>

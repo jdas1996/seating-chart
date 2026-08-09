@@ -431,3 +431,7 @@ body.assign-mode .map-canvas{ height:calc(100vh - 320px); }
   border-radius:8px; padding:6px 10px; margin-bottom:5px; line-height:1.4;
 }
 .danger{ color:#a05c5c; border-color:#c9a0a0; }
+
+#bin-search{ width:100%; margin-bottom:10px; }
+.bin-card.search-hit{ outline:2px solid var(--gold, #b8965a); background:#fdf8ec; }
+.bin-found{ color:#8a6d3b; font-weight:600; }
