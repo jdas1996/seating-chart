@@ -408,3 +408,26 @@ body.assign-mode .map-canvas{ height:calc(100vh - 320px); }
 
 /* generic hide — view switching toggles this on panels */
 .hidden{ display:none !important; }
+
+/* table detail panel */
+.table-detail{ width:460px; max-height:80vh; overflow-y:auto; }
+.td-head{ display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+.td-head .table-title{ flex:1; font-size:16px; }
+.td-guests{ border-top:1px solid var(--line); }
+.td-guest{
+  display:flex; align-items:center; gap:8px; padding:7px 2px;
+  border-bottom:1px solid var(--line); font-size:14px;
+}
+.td-guest span:first-child{ flex:1; }
+.td-unseat{
+  border:none; background:transparent; color:var(--ink-soft);
+  cursor:pointer; font-size:12px; opacity:.5;
+}
+.td-unseat:hover{ opacity:1; color:#a05c5c; }
+.td-meals{ margin:12px 0 6px; font-size:13px; color:var(--ink-soft); }
+.td-allergy-head{ font-size:12px; color:#8a5c2e; margin:8px 0 4px; }
+.td-allergy{
+  font-size:12px; background:#fdf3e4; border:1px solid #e8d5b5;
+  border-radius:8px; padding:6px 10px; margin-bottom:5px; line-height:1.4;
+}
+.danger{ color:#a05c5c; border-color:#c9a0a0; }

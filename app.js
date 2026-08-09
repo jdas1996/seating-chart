@@ -359,6 +359,8 @@ function render(){
     });
   }
 
+  renderTableDetail();   // keep the open table panel live
+
   // stats
   const seatedCount = rosterGuests().length - unassigned.length;
   document.getElementById('stat-seated').textContent = seatedCount;
@@ -644,6 +646,7 @@ function renderMap(search){
     searchHit: searchHit,
     locked: layoutLock,
     guestDragActive: ()=>!!dragGuestName,
+    onSelect: id=>openTableDetail(id),
     onMove: (id, x, y)=>{
       if(layoutLock){ render(); return; }
       db.ref('tablePos/' + id).set({ x:x, y:y });
@@ -858,6 +861,107 @@ function renderBin(){
     card.addEventListener('dragend', ()=>{ dragTableId = null; card.classList.remove('dragging'); });
     zone.appendChild(card);
   });
+}
+
+/* ---------------- table detail panel ---------------- */
+let openTableId = null;
+
+function openTableDetail(id){
+  openTableId = id;
+  renderTableDetail();
+  document.getElementById('table-modal').classList.remove('hidden');
+}
+
+function closeTableDetail(){
+  openTableId = null;
+  document.getElementById('table-modal').classList.add('hidden');
+}
+
+function renderTableDetail(){
+  if(!openTableId) return;
+  const id = openTableId;
+  const t = state.tables[id];
+  if(!t){ closeTableDetail(); return; }
+  const seats = t.seats || [];
+
+  document.getElementById('td-number').textContent = binned[id] ? '—' : '#' + tableNumber(id);
+  const titleInput = document.getElementById('td-title');
+  titleInput.value = t.title || 'Table';
+  titleInput.onchange = ()=>{
+    const v = titleInput.value.trim() || t.title;
+    db.ref('seatingChart/tables/' + id + '/title').set(v);
+    logActivity('<b>' + myName + '</b> renamed a table to "' + v + '"');
+  };
+  const capInput = document.getElementById('td-cap');
+  capInput.value = tableCap(t);
+  capInput.onchange = ()=>{
+    const v = Math.min(12, Math.max(8, parseInt(capInput.value,10) || tableCap(t)));
+    capInput.value = v;
+    db.ref('seatingChart/tables/' + id + '/cap').set(v);
+  };
+
+  const list = document.getElementById('td-guests');
+  list.innerHTML = '';
+  if(!seats.length){
+    const d = document.createElement('div');
+    d.className='empty-hint';
+    d.textContent='Nobody seated yet.';
+    list.appendChild(d);
+  }
+  seats.forEach(n=>{
+    const g = guestByName(n);
+    const row = document.createElement('div');
+    row.className='td-guest';
+    const nm = document.createElement('span');
+    nm.textContent = n;
+    row.appendChild(nm);
+    if(g.meal){
+      const tag = document.createElement('span');
+      tag.className='meal-tag';
+      tag.textContent = g.meal;
+      row.appendChild(tag);
+    }
+    const rm = document.createElement('button');
+    rm.className='td-unseat';
+    rm.title='Move back to Unassigned';
+    rm.textContent='✕';
+    rm.onclick = ()=>moveGuestToPool(n);
+    row.appendChild(rm);
+    list.appendChild(row);
+  });
+
+  document.getElementById('td-meals').textContent =
+    seats.length ? mealSummary(seats) + '  ·  ' + seats.length + '/' + tableCap(t) + ' seats' : '';
+
+  const allergies = [];
+  seats.forEach(n=>{
+    const g = guestByName(n);
+    if(g.diet && !allergies.includes(g.diet)) allergies.push(g.diet);
+  });
+  const alBox = document.getElementById('td-allergies');
+  alBox.innerHTML = '';
+  if(allergies.length){
+    const h = document.createElement('div');
+    h.className='td-allergy-head';
+    h.textContent = '⚠ Dietary notes';
+    alBox.appendChild(h);
+    allergies.forEach(a=>{
+      const d = document.createElement('div');
+      d.className='td-allergy';
+      d.textContent = a;
+      alBox.appendChild(d);
+    });
+  }
+
+  document.getElementById('td-delete').onclick = ()=>{
+    if(seats.length && !confirm('This table has ' + seats.length + ' guest(s). Delete it and move them back to Unassigned?')) return;
+    db.ref('seatingChart/tables/' + id).remove();
+    db.ref('tablePos/' + id).remove();
+    db.ref('binned/' + id).remove();
+    logActivity('<b>' + myName + '</b> deleted "' + (t.title||'a table') + '"');
+    closeTableDetail();
+  };
+  document.getElementById('td-close').onclick = closeTableDetail;
 }
 
 /* ---------------- group editor ---------------- */

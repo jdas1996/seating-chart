@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reception Seating Chart</title>
-<link rel="stylesheet" href="style.css?v=24">
+<link rel="stylesheet" href="style.css?v=25">
 </head>
 <body>
 
@@ -122,16 +122,33 @@
   </div>
 </div>
 
-<div class="version-note">v24</div>
+<div id="table-modal" class="modal-backdrop hidden">
+  <div class="modal table-detail">
+    <div class="td-head">
+      <span class="table-num" id="td-number"></span>
+      <input type="text" id="td-title" class="table-title">
+      <input type="number" id="td-cap" class="table-cap" min="8" max="12" title="Seats (8–12)">
+      <button class="ghost" id="td-close">Close</button>
+    </div>
+    <div id="td-guests" class="td-guests"></div>
+    <div id="td-meals" class="td-meals"></div>
+    <div id="td-allergies"></div>
+    <div class="modal-actions">
+      <button class="ghost danger" id="td-delete">Delete table</button>
+    </div>
+  </div>
+</div>
+
+<div class="version-note">v25</div>
 
 <!-- Firebase (compat SDK — no build step needed) -->
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 
-<script src="firebase-config.js?v=24"></script>
-<script src="guests.js?v=24"></script>
-<script src="floorplan.js?v=24"></script>
-<script src="app.js?v=24"></script>
+<script src="firebase-config.js?v=25"></script>
+<script src="guests.js?v=25"></script>
+<script src="floorplan.js?v=25"></script>
+<script src="app.js?v=25"></script>
 </body>
 </html>
