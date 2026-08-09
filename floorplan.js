@@ -299,6 +299,7 @@ function draw(opts){
         hit.removeEventListener('pointerup', up);
         hit.removeEventListener('pointercancel', up);
         if(opts.onDragState) opts.onDragState(false);
+        if(!g.isConnected) return;
         if(moved && opts.onMoveSlot) opts.onMoveSlot(s.i, Math.round(g._nx*10)/10, Math.round(g._ny*10)/10);
         else if(!moved && opts.onSlotClick) opts.onSlotClick(s.i);
       }
@@ -359,7 +360,8 @@ function wireFurn(svg, g, f, pos, opts){
       hit.removeEventListener('pointerup', up);
       hit.removeEventListener('pointercancel', up);
       if(opts.onDragState) opts.onDragState(false);
-      if(moved) opts.onMoveFurn(f.id, Math.round(g._nx * 10)/10, Math.round(g._ny * 10)/10);
+      if(!g.isConnected) return;   // stale drag — never write its coordinates
+      if(moved && g._nx !== undefined) opts.onMoveFurn(f.id, Math.round(g._nx * 10)/10, Math.round(g._ny * 10)/10);
     }
     hit.addEventListener('pointermove', move);
     hit.addEventListener('pointerup', up);
@@ -404,6 +406,9 @@ function wireTable(svg, g, hit, t, opts){
       hit.removeEventListener('pointercancel', up);
       g.classList.remove('fp-dragging');
       if(opts.onDragState) opts.onDragState(false);
+      /* if a sync redraw destroyed this element mid-drag, its coordinates are
+         stale — discard rather than write a wrong position */
+      if(!g.isConnected) return;
       if(moved && opts.onMove) opts.onMove(t.id, Math.round(g._nx * 10)/10, Math.round(g._ny * 10)/10);
       else if(!moved && opts.onSelect) opts.onSelect(t.id);
     }
