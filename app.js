@@ -40,6 +40,20 @@ let binned = {};           // groups pulled off the map into the assign bin
 let layoutLock = false;    // when true, positions and assignments are frozen
 let dragTableId = null;    // bin card being dragged in the assign view
 let expandedBins = new Set();   // bin cards showing their full guest list
+let undoStack = [];             // local snapshots of seatingChart/tables
+function snapshotTables(){
+  undoStack.push(JSON.stringify(state.tables));
+  if(undoStack.length > 50) undoStack.shift();
+  const b = document.getElementById('undo-btn');
+  if(b) b.disabled = false;
+}
+function saveBackup(name){
+  return db.ref('backups').push({
+    name: name || ('Backup ' + new Date().toLocaleString()),
+    by: myName, ts: firebase.database.ServerValue.TIMESTAMP,
+    tables: state.tables
+  });
+}
 
 /* The venue layout from the floor-plan app's JSON backup: every numbered spot
    at its exact position, numbers FIXED (they never re-derive from position).
@@ -537,6 +551,7 @@ function makeTableEl(id, table, search){
   delBtn.textContent='✕';
   delBtn.addEventListener('click', ()=>{
     if(count>0 && !confirm('This table has '+count+' guest(s). Delete it and move them back to Unassigned?')) return;
+    snapshotTables();
     db.ref('seatingChart/tables/' + id).remove();
     logActivity('<b>' + myName + '</b> deleted "' + (table.title||'a table') + '"');
   });
@@ -583,6 +598,7 @@ function makeTableEl(id, table, search){
 function moveGuestToTable(name, tableId, tableTitle){
   const oldId = findTableOf(name);
   if(oldId === tableId) return;
+  snapshotTables();
 
   if(oldId){
     db.ref('seatingChart/tables/' + oldId + '/seats').transaction(seats=>{
@@ -601,6 +617,7 @@ function moveGuestToTable(name, tableId, tableTitle){
 function moveGuestToPool(name){
   const oldId = findTableOf(name);
   if(!oldId) return;
+  snapshotTables();
   db.ref('seatingChart/tables/' + oldId + '/seats').transaction(seats=>{
     seats = seats || [];
     return seats.filter(n=>n!==name);
@@ -1239,6 +1256,60 @@ function wireToolbar(){
   document.getElementById('bin-search').addEventListener('input', render);
   document.getElementById('table-search').addEventListener('input', render);
 
+  document.getElementById('undo-btn').addEventListener('click', ()=>{
+    if(!undoStack.length) return;
+    const prev = undoStack.pop();
+    if(!undoStack.length) document.getElementById('undo-btn').disabled = true;
+    db.ref('seatingChart/tables').set(JSON.parse(prev));
+    logActivity('<b>' + myName + '</b> pressed Undo');
+  });
+
+  document.getElementById('save-btn').addEventListener('click', ()=>{
+    const name = prompt('Name this save:', 'Save ' + new Date().toLocaleString());
+    if(name === null) return;
+    saveBackup(name).then(()=>logActivity('<b>' + myName + '</b> saved a backup: "' + name + '"'));
+  });
+
+  document.getElementById('backups-btn').addEventListener('click', ()=>{
+    document.getElementById('backup-modal').classList.remove('hidden');
+  });
+  document.getElementById('backup-close').addEventListener('click', ()=>{
+    document.getElementById('backup-modal').classList.add('hidden');
+  });
+  db.ref('backups').limitToLast(25).on('value', snap=>{
+    const val = snap.val() || {};
+    const ul = document.getElementById('backup-list');
+    ul.innerHTML = '';
+    Object.entries(val).sort((a,b)=>(b[1].ts||0)-(a[1].ts||0)).forEach(([id, b])=>{
+      const row = document.createElement('div');
+      row.className = 'backup-row';
+      const nm = document.createElement('span');
+      const n = Object.values(b.tables||{}).reduce((sum,t)=>sum+((t.seats||[]).length),0);
+      nm.textContent = (b.name||'Backup') + ' — ' + n + ' seated';
+      nm.title = new Date(b.ts||0).toLocaleString() + ' by ' + (b.by||'?');
+      const go = document.createElement('button');
+      go.textContent = 'Restore';
+      go.onclick = ()=>{
+        if(!confirm('Restore "' + (b.name||'this backup') + '"? Current seating is snapshotted for Undo first.')) return;
+        snapshotTables();
+        db.ref('seatingChart/tables').set(b.tables || {});
+        logActivity('<b>' + myName + '</b> restored backup "' + (b.name||'') + '"');
+        document.getElementById('backup-modal').classList.add('hidden');
+      };
+      const del = document.createElement('button');
+      del.textContent = '✕';
+      del.onclick = ()=>{ if(confirm('Delete this backup?')) db.ref('backups/' + id).remove(); };
+      row.append(nm, go, del);
+      ul.appendChild(row);
+    });
+    if(!ul.children.length){
+      const d = document.createElement('div');
+      d.className = 'empty-hint';
+      d.textContent = 'No backups yet — press Save to make one.';
+      ul.appendChild(d);
+    }
+  });
+
   document.getElementById('add-table').addEventListener('click', ()=>{
     const n = Object.keys(state.tables).length + 1;
     const id = 'table-' + Date.now() + '-' + Math.random().toString(36).slice(2,6);
@@ -1256,6 +1327,8 @@ function wireToolbar(){
   });
 
   document.getElementById('auto-fill').addEventListener('click', ()=>{
+    snapshotTables();
+    saveBackup('Auto-backup before "Auto-fill" (' + myName + ')');
     const cap = state.seatSize;
     let pool = computeUnassigned().slice();
     const updates = {};
@@ -1287,6 +1360,8 @@ function wireToolbar(){
 
   document.getElementById('reset-btn').addEventListener('click', ()=>{
     if(!confirm("This clears every table's seats and moves everyone back to Unassigned. Table names stay. Continue?")) return;
+    snapshotTables();
+    saveBackup('Auto-backup before "Reset to unassigned" (' + myName + ')');
     const updates = {};
     Object.keys(state.tables).forEach(id=>{
       updates['seatingChart/tables/' + id + '/seats'] = [];
@@ -1352,6 +1427,8 @@ function wireRestoreSnapshot(){
       created + ' deleted table(s) are re-created with their people,\n' +
       (extra ? extra + ' table(s) not in the snapshot are left alone.\n' : '') +
       '\nSeat changes made since the snapshot will be overwritten.')) return;
+    snapshotTables();
+    saveBackup('Auto-backup before snapshot restore (' + myName + ')');
     db.ref().update(updates).then(()=>{
       logActivity('<b>' + myName + '</b> restored the board from the Aug 9 snapshot');
       alert('Restored. Every table now matches the exported Excel.');

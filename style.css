@@ -465,3 +465,13 @@ body.assign-mode .map-canvas{ height:calc(100vh - 320px); }
   border-radius:8px; font-family:inherit; font-size:13px; max-width:340px;
 }
 .table-card.search-hit{ outline:2px solid var(--gold, #b8965a); }
+
+.backup-list{ max-height:300px; overflow-y:auto; }
+.backup-row{
+  display:flex; align-items:center; gap:8px; padding:7px 2px;
+  border-bottom:1px solid var(--line); font-size:13px;
+}
+.backup-row span{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.backup-row button{ font-size:12px; padding:3px 10px; border:1px solid var(--line);
+  background:#fff; border-radius:6px; cursor:pointer; }
+#undo-btn:disabled{ opacity:.45; }
