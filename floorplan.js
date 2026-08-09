@@ -310,6 +310,7 @@ function wireFurn(svg, g, f, pos, opts){
     if(opts.guestDragActive && opts.guestDragActive()) return;
     e.preventDefault();
     hit.setPointerCapture(e.pointerId);
+    if(opts.onDragState) opts.onDragState(true);
     var start = toUser(svg, e.clientX, e.clientY);
     var ox = pos.x, oy = pos.y, moved = false;
     function move(ev){
@@ -323,6 +324,7 @@ function wireFurn(svg, g, f, pos, opts){
       hit.removeEventListener('pointermove', move);
       hit.removeEventListener('pointerup', up);
       hit.removeEventListener('pointercancel', up);
+      if(opts.onDragState) opts.onDragState(false);
       if(moved) opts.onMoveFurn(f.id, Math.round(g._nx * 10)/10, Math.round(g._ny * 10)/10);
     }
     hit.addEventListener('pointermove', move);
@@ -349,6 +351,7 @@ function wireTable(svg, g, hit, t, opts){
     if(opts.guestDragActive && opts.guestDragActive()) return;
     e.preventDefault();
     hit.setPointerCapture(e.pointerId);
+    if(opts.onDragState) opts.onDragState(true);
     var start = toUser(svg, e.clientX, e.clientY);
     var ox = t.x, oy = t.y, moved = false;
     if(opts.onPickUp) opts.onPickUp(t.id);
@@ -366,6 +369,7 @@ function wireTable(svg, g, hit, t, opts){
       hit.removeEventListener('pointerup', up);
       hit.removeEventListener('pointercancel', up);
       g.classList.remove('fp-dragging');
+      if(opts.onDragState) opts.onDragState(false);
       if(moved && opts.onMove) opts.onMove(t.id, Math.round(g._nx * 10)/10, Math.round(g._ny * 10)/10);
       else if(!moved && opts.onSelect) opts.onSelect(t.id);
     }

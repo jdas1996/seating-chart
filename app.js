@@ -682,6 +682,10 @@ function renderMap(search){
     tables: tables,
     searchHit: searchHit,
     locked: layoutLock,
+    onDragState: active=>{
+      localDragging = active;
+      if(!active && pendingRender){ pendingRender = false; render(); }
+    },
     slots: emptySlots,
     furniturePos: furniPos,
     onMoveFurn: (fid, x, y)=>{
@@ -837,6 +841,10 @@ function renderAssign(search){
     svg, tables, searchHit,
     slots: emptySlots,
     locked: layoutLock,
+    onDragState: active=>{
+      localDragging = active;
+      if(!active && pendingRender){ pendingRender = false; render(); }
+    },
     furniturePos: furniPos,
     onMoveFurn: (fid, x, y)=>{
       if(layoutLock){ render(); return; }
@@ -877,6 +885,13 @@ function renderAssign(search){
   const clashEl = document.getElementById('fp-clash');
   clashEl.querySelector('b').textContent = 0;
   clashEl.classList.remove('on');
+}
+
+function resetFurniture(){
+  if(layoutLock){ alert('The layout is locked. Unlock it first.'); return; }
+  if(!confirm('Put the Cake, D.J., Gifts, Photo Booth, Welcome and Seating Chart tables back to their planned spots?')) return;
+  db.ref('furniPos').set(FURNI_DEFAULT);
+  logActivity('<b>' + myName + '</b> reset the furniture positions');
 }
 
 function addSlot(){
@@ -1206,6 +1221,7 @@ function wireToolbar(){
   document.getElementById('meal-count-btn').addEventListener('click', downloadMealCounts);
   document.getElementById('guest-list-btn').addEventListener('click', downloadGuestLists);
   document.getElementById('add-slot-btn').addEventListener('click', addSlot);
+  document.getElementById('reset-furn-btn').addEventListener('click', resetFurniture);
 
   document.getElementById('reset-btn').addEventListener('click', ()=>{
     if(!confirm("This clears every table's seats and moves everyone back to Unassigned. Table names stay. Continue?")) return;
