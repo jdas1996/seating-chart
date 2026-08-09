@@ -120,6 +120,40 @@
     border-radius:10px;padding:1px 6px;white-space:nowrap}
   ul.list li .chip.meal{font-style:normal;font-size:10px;background:#f4ead6;color:#8a6d3b;
     border-radius:10px;padding:1px 6px;white-space:nowrap;text-transform:uppercase}
+
+  /* ---- cards view ---- */
+  #cardsView{flex:1;display:flex;min-height:0;background:var(--bg)}
+  #cardsPool{width:270px;flex:none;border-right:1px solid var(--line);background:var(--panel);
+    padding:12px;overflow-y:auto}
+  #cardsPool h2{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 8px}
+  #cpSearch{width:100%;font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);
+    border-radius:7px;margin-bottom:10px}
+  #cardsGrid{flex:1;overflow-y:auto;padding:14px;display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;align-content:start}
+  .tcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;
+    display:flex;flex-direction:column;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+  .tcard.dropping{border-color:var(--move);background:#eef4f2}
+  .tcard-head{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+  .tcard-num{min-width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;
+    font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+  .tcard-title{flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tcard-count{font-size:11px;color:var(--muted)}
+  .tcard-count.full{color:var(--ok);font-weight:700}
+  .tcard-count.over{color:var(--warn);font-weight:700}
+  .gcard{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;
+    background:#fff;padding:5px 8px;margin-bottom:5px;font-size:12px;cursor:grab}
+  .gcard:active{cursor:grabbing}
+  .gcard.dragging{opacity:.45}
+  .gcard span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .gcard .chip,.gcard .chip.meal{font-style:normal;font-size:9px;border-radius:8px;padding:1px 5px;
+    white-space:nowrap;flex:none}
+  .gcard .chip{background:#efece4;color:var(--muted)}
+  .gcard .chip.meal{background:#f4ead6;color:#8a6d3b;text-transform:uppercase}
+  .tcard-empty{font-size:11px;color:var(--muted);font-style:italic;padding:8px 2px;
+    border:1px dashed var(--line);border-radius:8px;text-align:center}
+  #cpZone.dropping{outline:2px dashed var(--move);outline-offset:4px;border-radius:8px}
+  @media (max-width:820px){ #cardsView{flex-direction:column}
+    #cardsPool{width:auto;max-height:38vh;border-right:none;border-bottom:1px solid var(--line)} }
   #rosterList li select{font-size:11px;padding:1px 4px;max-width:78px}
   #rosterList li button, #unseatedList li button{padding:2px 6px;font-size:11px}
   #addGuest{margin-top:8px;border-top:1px dotted var(--line);padding-top:8px}
@@ -200,6 +234,7 @@
   <button id="verBtn">Versions</button>
   <button id="pngBtn">PNG</button>
   <button id="printBtn">Print</button>
+  <button id="cardsBtn">Cards</button>
   <button id="mealBtn">Meal counts</button>
   <label class="btn">RSVP upload
     <input id="rsvpFile" type="file" accept=".xlsx,.xls,.csv" style="display:none"></label>
@@ -225,6 +260,15 @@
 </div>
 
 <main>
+  <div id="cardsView" style="display:none">
+    <div id="cardsPool">
+      <h2>Not seated — <span id="cpCount">0</span></h2>
+      <input id="cpSearch" type="text" placeholder="Search a name…" autocomplete="off">
+      <div id="cpZone"></div>
+      <p class="muted">Drag a name onto a table card to seat them. Drag back here to unseat.</p>
+    </div>
+    <div id="cardsGrid"></div>
+  </div>
   <div id="stage">
     <svg id="plan" xmlns="http://www.w3.org/2000/svg" viewBox="8 300 1090 372" preserveAspectRatio="xMidYMid meet">
       <g id="gView">
@@ -357,6 +401,6 @@
 
 <div id="toast"></div>
 
-<script type="module" src="./app.js?v=2.0.0"></script>
+<script type="module" src="./app.js?v=2.1.0"></script>
 </body>
 </html>
