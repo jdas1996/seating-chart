@@ -53,12 +53,12 @@ var COCKTAILS = [[239,396],[344,395],[257,472],[181,489],[1033,445],[1033,515]];
    table is deliberately NOT in this list: it exists as a real table in the
    seating data, so it gets drawn as a live table instead. */
 var FURN = [
-  {kind:'round',x:683,y:465,r:14,label:'Cake'},
-  {kind:'rect',x:596,y:383,w:24,h:13,label:'D.J.'},
-  {kind:'rect',x:938,y:333,w:12,h:38,label:'Gifts',rot:-90},
-  {kind:'rect',x:207,y:614,w:82,h:9,label:'Welcome / Memorial / Guest Book',below:true},
-  {kind:'rect',x:118,y:432,w:13,h:33,label:'Photo Booth',rot:-90},
-  {kind:'rect',x:160,y:658,w:44,h:8,label:'Seating Chart',below:true}
+  {id:'cake',kind:'round',x:683,y:465,r:14,label:'Cake'},
+  {id:'dj',kind:'rect',x:596,y:383,w:24,h:13,label:'D.J.'},
+  {id:'gifts',kind:'rect',x:938,y:333,w:12,h:38,label:'Gifts',rot:-90},
+  {id:'welcome',kind:'rect',x:207,y:614,w:82,h:9,label:'Welcome / Memorial / Guest Book',below:true},
+  {id:'booth',kind:'rect',x:118,y:432,w:13,h:33,label:'Photo Booth',rot:-90},
+  {id:'chart',kind:'rect',x:160,y:658,w:44,h:8,label:'Seating Chart',below:true}
 ];
 
 /* Where a table titled "Sweetheart …" gets seeded, and how big. */

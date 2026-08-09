@@ -187,6 +187,8 @@ function initRealtime(){
 
   db.ref('furniPos').on('value', snap=>{
     furniPos = snap.val() || {};
+    // scrub the bad key every drag wrote to while furniture had no ids
+    if(furniPos.undefined){ db.ref('furniPos/undefined').remove(); return; }
     render();
   });
 
