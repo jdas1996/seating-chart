@@ -835,9 +835,8 @@ function assignGroupToSlot(tableId, slotIdx){
 }
 
 function sendGroupToBin(tableId){
-  if(layoutLock){ alert('The layout is locked. Unlock it first.'); return; }
+  if(layoutLock) return;
   const t = state.tables[tableId] || {};
-  if(!confirm('Send "' + (t.title||'this table') + '" back to the bin?')) return;
   db.ref().update({
     ['tablePos/' + tableId]: null,
     ['binned/' + tableId]: true
@@ -1161,10 +1160,13 @@ function renderTableDetail(){
   /* From the map, "deleting" only unplaces: the group card returns to the
      Assign-view bin with everyone still bound. A real delete (which unbinds
      the people) lives only on the List view's ✕. */
+  /* No confirm here: sending a group to the bin is safe and reversible, and
+     a browser's "block dialogs" setting must never brick this button. */
   const tdDel = document.getElementById('td-delete');
-  tdDel.textContent = 'Remove from map (keeps group)';
+  tdDel.textContent = layoutLock ? 'Locked — unlock to move' : 'Remove from map (keeps group)';
+  tdDel.disabled = layoutLock;
   tdDel.onclick = ()=>{
-    if(!confirm('Take "' + (t.title||'this table') + '" off the map? The group stays together in the Assign-view bin.')) return;
+    if(layoutLock) return;
     db.ref().update({ ['tablePos/' + id]: null, ['binned/' + id]: true });
     logActivity('<b>' + myName + '</b> removed "' + (t.title||'a table') + '" from the map (group kept)');
     closeTableDetail();
