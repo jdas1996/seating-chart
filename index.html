@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reception Seating Chart</title>
-<link rel="stylesheet" href="style.css?v=20">
+<link rel="stylesheet" href="style.css?v=21">
 </head>
 <body>
 
@@ -65,8 +65,14 @@
 
   <div class="tables-wrap" id="tables-wrap"></div>
   <div class="map-view hidden" id="map-view">
-    <div class="map-hint">Drag circles to match your room. Drop a guest name onto a table to seat them.</div>
-    <div id="map-canvas" class="map-canvas"></div>
+    <div class="map-hint">The real room, traced from the venue diagram. Drag a table to move it. Drop a guest name onto a table to seat them.</div>
+    <div class="fp-warnbar">
+      <span id="fp-clash">Too close <b>0</b></span>
+      <span class="fp-note">Numbers follow the room — top to bottom, left to right — and update as you drag.</span>
+    </div>
+    <div id="map-canvas" class="map-canvas">
+      <svg id="fp-svg" class="fp-svg"></svg>
+    </div>
   </div>
 </div>
 
@@ -103,15 +109,16 @@
   </div>
 </div>
 
-<div class="version-note">v20</div>
+<div class="version-note">v21</div>
 
 <!-- Firebase (compat SDK — no build step needed) -->
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 
-<script src="firebase-config.js?v=20"></script>
-<script src="guests.js?v=20"></script>
-<script src="app.js?v=20"></script>
+<script src="firebase-config.js?v=21"></script>
+<script src="guests.js?v=21"></script>
+<script src="floorplan.js?v=21"></script>
+<script src="app.js?v=21"></script>
 </body>
 </html>

@@ -275,12 +275,82 @@ button.ghost{ border-color:var(--line); color:var(--ink-soft); }
 .map-hint{ font-size:12px; color:var(--ink-soft); margin-bottom:8px; }
 .map-canvas{
   position:relative; width:100%; height:calc(100vh - 240px); min-height:420px;
-  border:1.5px dashed var(--line); border-radius:14px;
-  background:
-    linear-gradient(var(--line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--line) 1px, transparent 1px);
-  background-size:40px 40px; background-color:#fdfaf3; overflow:hidden;
+  border:1.5px solid var(--line); border-radius:14px;
+  background:#fff; overflow:hidden;
 }
+
+/* ---------------- venue floor plan (see floorplan.js) ----------------
+   The room is drawn as one inline SVG that scales to the panel. Class names
+   are prefixed fp- so nothing here collides with the list-view styles. */
+.fp-svg{ display:block; width:100%; height:100%; touch-action:none; background:#fff; }
+
+.fp-roomfill{ fill:#fdfcf9; }
+.fp-foyerfill{ fill:#f7f5ef; }
+.fp-wall{ fill:none; stroke:#2a2722; stroke-width:2.2; stroke-linejoin:round; }
+.fp-wall-thin{ fill:none; stroke:#6a6459; stroke-width:1; }
+.fp-divider{ stroke:#b3ada1; stroke-width:1; stroke-dasharray:6 4; }
+.fp-door-leaf{ fill:none; stroke:#2a2722; stroke-width:1.6; }
+.fp-door-arc{ fill:none; stroke:#6a6459; stroke-width:.9; }
+.fp-furn{ fill:#efece4; stroke:#7d7669; stroke-width:1.3; }
+.fp-furn.fp-fixed{ fill:#e2ded4; stroke:#8b8478; }
+.fp-cock{ fill:#f4f1e8; stroke:#8a8375; stroke-width:1.2; }
+
+.fp-lbl{ font:600 9px sans-serif; fill:#4a463f; text-anchor:middle;
+  dominant-baseline:middle; pointer-events:none; user-select:none; }
+.fp-lbl-sm{ font:600 7px sans-serif; fill:#5a554c; text-anchor:middle;
+  dominant-baseline:middle; pointer-events:none; user-select:none; }
+.fp-zone{ font:700 11px sans-serif; fill:#a49c8c; text-anchor:middle;
+  letter-spacing:.06em; pointer-events:none; user-select:none; }
+
+.fp-item{ cursor:grab; }
+.fp-item.fp-dragging{ cursor:grabbing; }
+.fp-hitarea{ fill:transparent; stroke:transparent; stroke-width:6; touch-action:none; }
+.fp-tbl{ fill:#e8f1ef; stroke:#2f6f6b; stroke-width:1.6; }
+.fp-num{ font:700 11px sans-serif; fill:#1d4a47; text-anchor:middle;
+  dominant-baseline:middle; pointer-events:none; user-select:none; }
+.fp-seats{ font:600 7px sans-serif; fill:#4b7d79; text-anchor:middle;
+  dominant-baseline:middle; pointer-events:none; user-select:none; }
+.fp-title{ font:600 5.8px sans-serif; fill:#6f6a61; text-anchor:middle;
+  dominant-baseline:middle; pointer-events:none; user-select:none; }
+
+/* one amber for both "too close" and "same number twice" */
+.fp-item.fp-warn .fp-tbl{ fill:#fbe6dd; stroke:#c0562f; }
+.fp-item.fp-dropping .fp-tbl{ stroke:#7a8c6c; stroke-width:2.6; }
+.fp-item.fp-hit .fp-tbl{ stroke:var(--gold); stroke-width:2.8; }
+
+.fp-badge{ stroke:#fff; stroke-width:1; pointer-events:none; }
+.fp-fill{ fill:#3d7a52; } .fp-under{ fill:#c9a227; } .fp-over{ fill:#c0562f; }
+.fp-badge-t{ font:700 5.5px sans-serif; fill:#fff; text-anchor:middle;
+  dominant-baseline:middle; pointer-events:none; user-select:none; }
+
+.fp-warnbar{ display:flex; gap:14px; align-items:center; font-size:12px;
+  color:var(--ink-soft); margin:6px 0 8px; flex-wrap:wrap; }
+.fp-warnbar b{ font-weight:600; }
+.fp-warnbar .on{ color:var(--danger); }
+.map-table{
+  position:absolute; width:96px; height:96px; border-radius:50%;
+  background:#fff; border:2px solid var(--line);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  cursor:grab; user-select:none; touch-action:none; text-align:center;
+  box-shadow:0 3px 10px rgba(0,0,0,.08); padding:6px;
+}
+.map-table:active{ cursor:grabbing; }
+.map-table.full{ border-color:#b8965a; background:#fdf8ec; }
+.map-table.over{ border-color:#a05c5c; background:#fbeeee; }
+.map-table.dragover{ border-color:#7a8c6c; background:#eef4ea; transform:scale(1.06); }
+.map-table.search-hit{ outline:3px solid var(--gold, #b8965a); outline-offset:2px; }
+.map-table-title{ font-size:11px; line-height:1.25; max-height:42px; overflow:hidden; }
+.map-table-count{ font-size:10px; color:var(--ink-soft); margin-top:3px; }
+
+.table-num{
+  min-width:24px; height:24px; border-radius:50%; background:var(--gold, #b8965a);
+  color:#fff; font-size:12px; display:flex; align-items:center; justify-content:center;
+  margin-right:8px; flex-shrink:0;
+}
+.map-table-num{ font-size:16px; font-weight:600; color:var(--gold, #b8965a); line-height:1; }
+
+.fp-warnbar .fp-note{ color:var(--ink-soft); font-size:11px; }
+
 .map-table{
   position:absolute; width:96px; height:96px; border-radius:50%;
   background:#fff; border:2px solid var(--line);

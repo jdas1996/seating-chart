@@ -30,7 +30,9 @@ let clientId, myName, myColor;
 let state = { seatSize: 10, tables: {} };
 let groupOverrides = {};   // synced edits to guests' groups, keyed by encoded name
 let guestExtras = {};      // guests added via RSVP uploads, synced in Firebase
-let tableMap = {};         // physical positions of tables on the room map {id:{x,y}}
+let tableMap = {};         // legacy sketch-canvas positions, 0–1 fractions. Kept as backup.
+let tablePos = {};         // floor-plan positions in SVG user units {id:{x,y}}
+let seededPos = false;     // only ever seed missing positions once per load
 let mapMode = false;
 let presence = {};
 let dragGuestName = null;
@@ -160,6 +162,14 @@ function initRealtime(){
     render();
   });
 
+  /* Floor-plan positions live at their own path in SVG user units. The old
+     `tableMap` (0–1 fractions of the sketch canvas) is left untouched as a
+     backup — the two are not interchangeable, so nothing reads it any more. */
+  db.ref('tablePos').on('value', snap=>{
+    tablePos = snap.val() || {};
+    render();
+  });
+
   db.ref('activity').limitToLast(30).on('value', snap=>{
     const val = snap.val() || {};
     const items = Object.values(val).sort((a,b)=> (b.ts||0) - (a.ts||0));
@@ -210,8 +220,27 @@ function tableIdsSorted(){
   });
 }
 
+/* Table numbers follow the room rather than the order tables happened to be
+   created in: FloorPlan.renumber() walks the plan top to bottom, left to right,
+   so table 12 is always next to table 11 when you are standing in the room.
+   Anything not yet placed keeps a stable number after the placed ones.
+   Recomputed once per render — render() clears the cache. */
+let numberCache = null;
+function tableNumbers(){
+  if(numberCache) return numberCache;
+  const map = {};
+  const placed = tableIdsSorted()
+    .filter(id=>tablePos[id])
+    .map(id=>({ id, x:tablePos[id].x, y:tablePos[id].y }));
+  FloorPlan.renumber(placed).forEach(r=>{ map[r.id] = Number(r.label); });
+  let n = placed.length;
+  tableIdsSorted().forEach(id=>{ if(!map[id]) map[id] = ++n; });
+  numberCache = map;
+  return map;
+}
+
 function tableNumber(id){
-  return tableIdsSorted().indexOf(id) + 1;
+  return tableNumbers()[id] || 0;
 }
 
 function findTableOf(name){
@@ -249,6 +278,7 @@ function remoteDraggersOf(name){
 /* ---------------- rendering ---------------- */
 function render(){
   if(localDragging){ pendingRender = true; return; }
+  numberCache = null;                 // positions or tables may have changed
   const search = document.getElementById('search').value.trim().toLowerCase();
 
   // pool
@@ -499,76 +529,83 @@ function renderGroupFilter(){
 }
 
 /* ---------------- room map view ---------------- */
-function renderMap(search){
-  const canvas = document.getElementById('map-canvas');
-  canvas.innerHTML = '';
-  const ids = tableIdsSorted();
-  ids.forEach((id, i)=>{
-    const table = state.tables[id];
-    const pos = tableMap[id] || { x: 0.08 + (i % 5) * 0.19, y: 0.08 + Math.floor(i / 5) * 0.24 };
-    const el = document.createElement('div');
-    el.className = 'map-table';
-    el.style.left = (pos.x * 100) + '%';
-    el.style.top  = (pos.y * 100) + '%';
+/* The venue floor plan, drawn by floorplan.js from the traced room geometry.
+   This app owns the data; floorplan.js owns the drawing and knows nothing
+   about Firebase. */
 
-    const count = (table.seats || []).length;
-    const cap = state.seatSize;
-    if(count === cap) el.classList.add('full');
-    if(count > cap) el.classList.add('over');
-    if(search && (table.seats || []).some(n=>n.toLowerCase().includes(search))) el.classList.add('search-hit');
+/* Give every table a spot the first time the plan is opened. Positions come
+   from the venue diagram in creation order, so the initial plan matches the
+   PDF the couple started from; after that everyone drags. Runs at most once
+   per page load — the write comes back through the tablePos listener. */
+function seedMissingPositions(ids){
+  if(seededPos) return false;
+  const missing = ids.filter(id=>!tablePos[id]);
+  if(!missing.length) return false;
+  seededPos = true;
 
-    const num = document.createElement('div');
-    num.className = 'map-table-num';
-    num.textContent = tableNumber(id);
-    const title = document.createElement('div');
-    title.className = 'map-table-title';
-    title.textContent = table.title || 'Table';
-    const cnt = document.createElement('div');
-    cnt.className = 'map-table-count';
-    cnt.textContent = count + '/' + cap;
-    el.appendChild(num);
-    el.appendChild(title);
-    el.appendChild(cnt);
-
-    // reposition by dragging the circle (pointer events, works on touch too)
-    el.addEventListener('pointerdown', e=>{
-      if(dragGuestName) return;            // a guest card drag is in progress
-      e.preventDefault();
-      el.setPointerCapture(e.pointerId);
-      const rect = canvas.getBoundingClientRect();
-      const startX = e.clientX, startY = e.clientY;
-      const origX = pos.x, origY = pos.y;
-      let moved = false;
-      const onMove = ev=>{
-        const nx = Math.min(0.92, Math.max(0, origX + (ev.clientX - startX) / rect.width));
-        const ny = Math.min(0.88, Math.max(0, origY + (ev.clientY - startY) / rect.height));
-        if(Math.abs(ev.clientX - startX) + Math.abs(ev.clientY - startY) > 4) moved = true;
-        el.style.left = (nx * 100) + '%';
-        el.style.top  = (ny * 100) + '%';
-        el._nx = nx; el._ny = ny;
-      };
-      const onUp = ()=>{
-        el.removeEventListener('pointermove', onMove);
-        el.removeEventListener('pointerup', onUp);
-        if(moved) db.ref('tableMap/' + id).set({ x: el._nx, y: el._ny });
-      };
-      el.addEventListener('pointermove', onMove);
-      el.addEventListener('pointerup', onUp);
-    });
-
-    // seat a guest by dropping their card on a map table
-    el.addEventListener('dragover', e=>{ e.preventDefault(); el.classList.add('dragover'); });
-    el.addEventListener('dragleave', ()=>el.classList.remove('dragover'));
-    el.addEventListener('drop', e=>{
-      e.preventDefault();
-      el.classList.remove('dragover');
-      if(!dragGuestName) return;
-      moveGuestToTable(dragGuestName, id, table.title);
-      dragGuestName = null;
-    });
-
-    canvas.appendChild(el);
+  // don't drop a new table on top of one already sitting on a diagram slot
+  const taken = [];
+  FloorPlan.R_TABLES.forEach((p, i)=>{
+    for(const id in tablePos){
+      if(Math.abs(tablePos[id].x - p[0]) < 0.5 && Math.abs(tablePos[id].y - p[1]) < 0.5){
+        taken.push(i);
+        break;
+      }
+    }
   });
+
+  const seeds = FloorPlan.seedPositions(
+    missing.map(id=>({ id, title:(state.tables[id] || {}).title || '' })), taken);
+  const updates = {};
+  seeds.forEach(s=>{ updates['tablePos/' + s.id] = { x:s.x, y:s.y }; });
+  db.ref().update(updates);
+  return true;
+}
+
+function renderMap(search){
+  const svg = document.getElementById('fp-svg');
+  const ids = tableIdsSorted();
+  if(seedMissingPositions(ids)) return;   // listener will re-render once written
+
+  const nums = tableNumbers();
+  const searchHit = {};
+  const tables = ids.map(id=>{
+    const table = state.tables[id] || {};
+    const seats = table.seats || [];
+    const pos = tablePos[id] || { x:FloorPlan.SWEET_POS.x, y:FloorPlan.SWEET_POS.y };
+    if(search && seats.some(n=>n.toLowerCase().includes(search))) searchHit[id] = true;
+    return {
+      id: id,
+      title: table.title || 'Table',
+      x: pos.x,
+      y: pos.y,
+      r: /^sweetheart/i.test(table.title || '') ? FloorPlan.SWEET_POS.r : 14,
+      count: seats.length,
+      cap: state.seatSize,
+      label: String(nums[id] || '')
+    };
+  });
+
+  const flags = FloorPlan.draw({
+    svg: svg,
+    tables: tables,
+    searchHit: searchHit,
+    guestDragActive: ()=>!!dragGuestName,
+    onMove: (id, x, y)=>{ db.ref('tablePos/' + id).set({ x:x, y:y }); },
+    onDropGuest: id=>{
+      if(!dragGuestName) return;
+      moveGuestToTable(dragGuestName, id, (state.tables[id] || {}).title);
+      dragGuestName = null;
+    }
+  });
+
+  /* Only spacing is warned about here. Numbers are derived from position on
+     every render rather than stored per table, so two tables cannot share one
+     — the duplicate check in floorplan.js stays for the day a table carries a
+     hand-typed number, but it has nothing to report today. */
+  const clashEl = document.getElementById('fp-clash');
+  clashEl.querySelector('b').textContent = flags.nClash;
+  clashEl.classList.toggle('on', flags.nClash > 0);
 }
 
 document.getElementById('map-toggle').addEventListener('click', ()=>{

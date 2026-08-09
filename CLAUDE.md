@@ -86,3 +86,25 @@ Files in this folder:
   in `app.js` depends on these exact paths.
 - If asked to add features, that's fine — just don't silently refactor
   working code while doing routine deployment.
+
+---
+
+## The room map (added in v21)
+
+`floorplan.js` draws the real venue floor plan — room outline, walls, bars,
+columns, doors, stairs — traced from the venue's Room Viewer PDF. It is the
+same geometry the reception-plan app uses (christal-yesudasan-reception.web.app),
+copied rather than imported because this app has no build step.
+
+- `tablePos/{id}` holds positions in SVG user units, ~4.66 per foot. The older
+  `tableMap/{id}` (0–1 fractions of the previous sketch canvas) is dead but
+  kept as a backup — **the two are not interchangeable.**
+- `floorplan.js` touches no Firebase and no app state on purpose: `draw()`
+  takes a plain array and reports changes through callbacks. Keep it that way
+  so the geometry can stay shared with the other app instead of forking.
+- Table numbers now follow the room (top to bottom, left to right) rather than
+  the order tables were created in. That number feeds the list view, the
+  meal-count download and the guest-list export, so they all agree.
+- Numbers are derived on every render, never stored, so two tables cannot end
+  up sharing one. The duplicate check in `floorplan.js` is there for the day a
+  number becomes hand-editable.
