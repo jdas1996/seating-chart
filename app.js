@@ -700,6 +700,7 @@ function wireToolbar(){
   });
 
   document.getElementById('meal-count-btn').addEventListener('click', downloadMealCounts);
+  document.getElementById('guest-list-btn').addEventListener('click', downloadGuestLists);
 
   document.getElementById('reset-btn').addEventListener('click', ()=>{
     if(!confirm("This clears every table's seats and moves everyone back to Unassigned. Table names stay. Continue?")) return;
@@ -835,6 +836,50 @@ function downloadMealCounts(){
   const wbx = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wbx, wsx, 'Meal Counts');
   XLSX.writeFile(wbx, 'Christal_Yesudasan_Meal_Counts.xlsx');
+}
+
+/* ---------------- guest list exports ---------------- */
+function downloadGuestLists(){
+  // sheet 1: all guests alphabetically (by last name) with meal + table number
+  const byName = rosterGuests().slice().sort((a,b)=>{
+    const ka = normName(a.name).split(' ').slice(-1)[0] + ' ' + normName(a.name);
+    const kb = normName(b.name).split(' ').slice(-1)[0] + ' ' + normName(b.name);
+    return ka.localeCompare(kb);
+  });
+  const rows1 = [['Guest','Meal','Table #','Table Name']];
+  byName.forEach(g=>{
+    const tid = findTableOf(g.name);
+    rows1.push([
+      g.name,
+      g.meal || '',
+      tid ? (/head/i.test(state.tables[tid].title||'') ? 'Head' : tableNumber(tid)) : '—',
+      tid ? (state.tables[tid].title || '') : 'Unassigned'
+    ]);
+  });
+
+  // sheet 2: by table number, each guest with meal
+  const rows2 = [['Table #','Table Name','Guest','Meal']];
+  tableIdsSorted().forEach(id=>{
+    const t = state.tables[id];
+    const num = /head/i.test(t.title||'') ? 'Head' : tableNumber(id);
+    (t.seats||[]).slice().sort((a,b)=>normName(a).localeCompare(normName(b))).forEach(n=>{
+      rows2.push([num, t.title || '', n, guestByName(n).meal || '']);
+    });
+    rows2.push(['','','','']);
+  });
+  const unassigned = computeUnassigned();
+  unassigned.slice().sort((a,b)=>normName(a).localeCompare(normName(b))).forEach(n=>{
+    rows2.push(['—','Unassigned', n, guestByName(n).meal || '']);
+  });
+
+  const wbx = XLSX.utils.book_new();
+  const ws1 = XLSX.utils.aoa_to_sheet(rows1);
+  ws1['!cols'] = [{wch:30},{wch:10},{wch:8},{wch:22}];
+  const ws2 = XLSX.utils.aoa_to_sheet(rows2);
+  ws2['!cols'] = [{wch:8},{wch:22},{wch:30},{wch:10}];
+  XLSX.utils.book_append_sheet(wbx, ws1, 'Guests A-Z');
+  XLSX.utils.book_append_sheet(wbx, ws2, 'By Table');
+  XLSX.writeFile(wbx, 'Seating_Guest_Lists.xlsx');
 }
 
 /* ---------------- import old single-device layout ---------------- */
