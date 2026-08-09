@@ -701,11 +701,11 @@ function renderMap(search){
     onDropGroup: i=>{
       if(dragTableId){ assignGroupToSlot(dragTableId, i); dragTableId = null; }
     },
-    onSlotClick: i=>{
-      if(layoutLock) return;
-      if(!confirm('Delete this empty table spot? Numbering shifts automatically.')) return;
+    onSlotClick: i=>openSpotDialog(i),
+    onMoveSlot: (i, x, y)=>{
+      if(layoutLock){ render(); return; }
       const next = mapSlots.slice();
-      next.splice(i, 1);
+      next[i] = Object.assign({}, next[i], { x, y });
       db.ref('mapSlots').set(next);
     },
     onDropGuest: id=>{
@@ -885,6 +885,39 @@ function renderAssign(search){
   const clashEl = document.getElementById('fp-clash');
   clashEl.querySelector('b').textContent = 0;
   clashEl.classList.remove('on');
+}
+
+/* ---------------- empty-spot dialog ---------------- */
+function openSpotDialog(i){
+  const s = mapSlots[i];
+  if(!s) return;
+  const modal = document.getElementById('spot-modal');
+  document.getElementById('spot-num').textContent = '#' + (slotNumbers()[i] || '');
+  const sel = document.getElementById('spot-group');
+  sel.innerHTML = '<option value="">Choose a table group…</option>';
+  const occupied = new Set(Object.values(slotOccupants()));
+  tableIdsSorted().filter(id=>!occupied.has(id)).forEach(id=>{
+    const t = state.tables[id] || {};
+    const o = document.createElement('option');
+    o.value = id;
+    o.textContent = (t.title||'Table') + ' — ' + (t.seats||[]).length + ' guests';
+    sel.appendChild(o);
+  });
+  modal.classList.remove('hidden');
+  document.getElementById('spot-close').onclick = ()=>modal.classList.add('hidden');
+  document.getElementById('spot-assign').onclick = ()=>{
+    if(!sel.value) return;
+    assignGroupToSlot(sel.value, i);
+    modal.classList.add('hidden');
+  };
+  document.getElementById('spot-delete').onclick = ()=>{
+    if(layoutLock){ alert('The layout is locked.'); return; }
+    if(!confirm('Delete empty spot #' + (slotNumbers()[i]||'') + ' from the map?')) return;
+    const next = mapSlots.slice();
+    next.splice(i, 1);
+    db.ref('mapSlots').set(next);
+    modal.classList.add('hidden');
+  };
 }
 
 function resetFurniture(){

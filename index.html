@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reception Seating Chart</title>
-<link rel="stylesheet" href="style.css?v=32">
+<link rel="stylesheet" href="style.css?v=33">
 </head>
 <body>
 
@@ -144,17 +144,31 @@
   </div>
 </div>
 
-<div class="version-note">v32</div>
+<div id="spot-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <h3>Empty table <span id="spot-num"></span></h3>
+    <p>Assign a table group to this spot, or drag its dashed circle on the map to move the spot itself.</p>
+    <select id="spot-group"></select>
+    <div class="modal-actions">
+      <button class="ghost danger" id="spot-delete">Delete spot</button>
+      <span style="flex:1"></span>
+      <button class="ghost" id="spot-close">Close</button>
+      <button class="primary" id="spot-assign">Assign group</button>
+    </div>
+  </div>
+</div>
+
+<div class="version-note">v33</div>
 
 <!-- Firebase (compat SDK — no build step needed) -->
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 
-<script src="firebase-config.js?v=32"></script>
-<script src="guests.js?v=32"></script>
-<script src="restore-snapshot.js?v=32"></script>
-<script src="floorplan.js?v=32"></script>
-<script src="app.js?v=32"></script>
+<script src="firebase-config.js?v=33"></script>
+<script src="guests.js?v=33"></script>
+<script src="restore-snapshot.js?v=33"></script>
+<script src="floorplan.js?v=33"></script>
+<script src="app.js?v=33"></script>
 </body>
 </html>

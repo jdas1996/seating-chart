@@ -257,20 +257,54 @@ function draw(opts){
     if(!opts.locked && opts.onMoveFurn) wireFurn(svg, g, f, pos, opts);
   });
 
-  /* Empty numbered spots (assign view). Dashed circles, drop targets only. */
+  /* Empty numbered spots. They grow when a card hovers so the drop reads as
+     "this table will take it"; a plain click opens the spot dialog; a drag
+     moves the spot itself. */
   (opts.slots || []).forEach(function(s){
     var g = el('g', {'class':'fp-slot', 'data-slot':s.i}, gItems);
-    el('circle', {cx:s.x, cy:s.y, r:14, 'class':'fp-slot-c'}, g);
+    var c = el('circle', {cx:s.x, cy:s.y, r:14, 'class':'fp-slot-c'}, g);
     txt(s.x, s.y + 3, s.label, 'fp-slot-n', 0, g);
-    g.addEventListener('dragover', function(e){ e.preventDefault(); g.classList.add('fp-dropping'); });
-    g.addEventListener('dragleave', function(){ g.classList.remove('fp-dropping'); });
+    var hit = el('circle', {cx:s.x, cy:s.y, r:18, 'class':'fp-hitarea'}, g);
+    g.addEventListener('dragover', function(e){
+      e.preventDefault(); g.classList.add('fp-dropping'); c.setAttribute('r', 19);
+    });
+    g.addEventListener('dragleave', function(){
+      g.classList.remove('fp-dropping'); c.setAttribute('r', 14);
+    });
     g.addEventListener('drop', function(e){
       e.preventDefault();
-      g.classList.remove('fp-dropping');
+      g.classList.remove('fp-dropping'); c.setAttribute('r', 14);
       if(opts.onDropGroup) opts.onDropGroup(s.i);
     });
-    g.addEventListener('click', function(){
-      if(opts.onSlotClick) opts.onSlotClick(s.i);
+    if(opts.locked){
+      hit.addEventListener('click', function(){ if(opts.onSlotClick) opts.onSlotClick(s.i); });
+      return;
+    }
+    hit.addEventListener('pointerdown', function(e){
+      if(opts.guestDragActive && opts.guestDragActive()) return;
+      e.preventDefault();
+      hit.setPointerCapture(e.pointerId);
+      if(opts.onDragState) opts.onDragState(true);
+      var start = toUser(svg, e.clientX, e.clientY);
+      var ox = s.x, oy = s.y, moved = false;
+      function move(ev){
+        var p = toUser(svg, ev.clientX, ev.clientY);
+        var nx = ox + (p.x - start.x), ny = oy + (p.y - start.y);
+        if(Math.abs(p.x - start.x) + Math.abs(p.y - start.y) > 1.5) moved = true;
+        g.setAttribute('transform', 'translate(' + (nx - s.x) + ',' + (ny - s.y) + ')');
+        g._nx = nx; g._ny = ny;
+      }
+      function up(){
+        hit.removeEventListener('pointermove', move);
+        hit.removeEventListener('pointerup', up);
+        hit.removeEventListener('pointercancel', up);
+        if(opts.onDragState) opts.onDragState(false);
+        if(moved && opts.onMoveSlot) opts.onMoveSlot(s.i, Math.round(g._nx*10)/10, Math.round(g._ny*10)/10);
+        else if(!moved && opts.onSlotClick) opts.onSlotClick(s.i);
+      }
+      hit.addEventListener('pointermove', move);
+      hit.addEventListener('pointerup', up);
+      hit.addEventListener('pointercancel', up);
     });
   });
 
