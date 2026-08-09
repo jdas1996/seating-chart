@@ -990,6 +990,22 @@ function openSpotDialog(i){
   };
 }
 
+/* Renumber every spot in reading order — rows top to bottom, left to right —
+   so a guest can follow the numbers across the room. Groups don't move; only
+   the numbers on the circles change. The sweetheart spot keeps 'SH'. */
+function renumberByPosition(){
+  if(layoutLock){ alert('The layout is locked. Unlock it first.'); return; }
+  if(!confirm('Renumber ALL tables in reading order (top row first, left to right)?\n\n' +
+    'No group moves — only the numbers change, everywhere at once. ' +
+    'You can still edit any single number afterwards.')) return;
+  const idx = mapSlots.map((s, i)=>({ i, x:s.x, y:s.y, sh: String(s.n).toUpperCase() === 'SH' }));
+  const ordered = FloorPlan.renumber(idx.filter(s=>!s.sh).map(s=>({ id:s.i, x:s.x, y:s.y })));
+  const next = mapSlots.map(s=>Object.assign({}, s));
+  ordered.forEach(r=>{ next[r.id].n = r.label; });
+  db.ref('mapSlots').set(next);
+  logActivity('<b>' + myName + '</b> renumbered all tables in reading order');
+}
+
 function resetFurniture(){
   if(layoutLock){ alert('The layout is locked. Unlock it first.'); return; }
   if(!confirm('Put the Cake, D.J., Gifts, Photo Booth, Welcome and Seating Chart tables back to their planned spots?')) return;
@@ -1402,6 +1418,7 @@ function wireToolbar(){
   document.getElementById('guest-list-btn').addEventListener('click', downloadGuestLists);
   document.getElementById('add-slot-btn').addEventListener('click', addSlot);
   document.getElementById('reset-furn-btn').addEventListener('click', resetFurniture);
+  document.getElementById('renumber-btn').addEventListener('click', renumberByPosition);
 
   document.getElementById('reset-btn').addEventListener('click', ()=>{
     if(!confirm("This clears every table's seats and moves everyone back to Unassigned. Table names stay. Continue?")) return;
