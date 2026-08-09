@@ -1256,6 +1256,16 @@ function wireToolbar(){
   document.getElementById('bin-search').addEventListener('input', render);
   document.getElementById('table-search').addEventListener('input', render);
 
+  const moreMenu = document.getElementById('more-menu');
+  document.getElementById('more-btn').addEventListener('click', e=>{
+    e.stopPropagation();
+    moreMenu.classList.toggle('hidden');
+  });
+  document.addEventListener('click', e=>{
+    if(!e.target.closest('.more-wrap')) moreMenu.classList.add('hidden');
+  });
+  moreMenu.addEventListener('click', ()=>moreMenu.classList.add('hidden'));
+
   document.getElementById('undo-btn').addEventListener('click', ()=>{
     if(!undoStack.length) return;
     const prev = undoStack.pop();

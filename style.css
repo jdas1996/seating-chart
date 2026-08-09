@@ -475,3 +475,16 @@ body.assign-mode .map-canvas{ height:calc(100vh - 320px); }
 .backup-row button{ font-size:12px; padding:3px 10px; border:1px solid var(--line);
   background:#fff; border-radius:6px; cursor:pointer; }
 #undo-btn:disabled{ opacity:.45; }
+
+.more-wrap{ position:relative; display:inline-block; }
+.more-menu{
+  position:absolute; top:calc(100% + 6px); right:0; z-index:60;
+  background:#fff; border:1px solid var(--line); border-radius:10px;
+  box-shadow:0 8px 30px rgba(0,0,0,.12); padding:8px; min-width:230px;
+  display:flex; flex-direction:column; gap:6px;
+}
+.more-menu button{ width:100%; text-align:left; }
+.more-sep{
+  font-size:10px; text-transform:uppercase; letter-spacing:.06em;
+  color:#a05c5c; border-top:1px solid var(--line); padding-top:8px; margin-top:2px;
+}

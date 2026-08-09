@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reception Seating Chart</title>
-<link rel="stylesheet" href="style.css?v=38">
+<link rel="stylesheet" href="style.css?v=39">
 </head>
 <body>
 
@@ -39,20 +39,26 @@
   <button class="primary" id="add-table">+ Add table</button>
   <span class="tb-label">Seats per table:</span>
   <input type="number" id="seat-size" value="10" min="2" max="20">
-  <button id="auto-fill">Auto-fill empty seats</button>
-  <button class="ghost" id="reset-btn">Reset to unassigned</button>
   <button class="ghost" id="map-toggle">Map view</button>
   <button class="ghost" id="assign-toggle">Assign tables</button>
   <button class="ghost" id="lock-btn">🔓 Lock layout</button>
-  <button class="ghost" id="import-btn">Import old layout…</button>
   <button class="ghost" id="rsvp-upload-btn">Upload RSVP export…</button>
   <button class="ghost" id="meal-count-btn">Download meal counts</button>
   <button class="ghost" id="guest-list-btn">Download lists</button>
   <button id="save-btn">💾 Save</button>
   <button id="undo-btn" disabled>↩ Undo</button>
-  <button class="ghost" id="backups-btn">Backups…</button>
-  <button class="ghost" id="restore-snap">Restore snapshot</button>
-  <button class="ghost" id="empty-map">Empty the map…</button>
+  <span class="more-wrap">
+    <button class="ghost" id="more-btn">More ▾</button>
+    <div class="more-menu hidden" id="more-menu">
+      <button id="auto-fill">Auto-fill empty seats</button>
+      <button class="ghost" id="backups-btn">Backups…</button>
+      <div class="more-sep">Careful — these change a lot at once</div>
+      <button class="ghost" id="reset-btn">Reset to unassigned</button>
+      <button class="ghost" id="restore-snap">Restore Aug 9 snapshot</button>
+      <button class="ghost" id="empty-map">Empty the map…</button>
+      <button class="ghost" id="import-btn">Import old layout…</button>
+    </div>
+  </span>
   <input type="file" id="rsvp-file" accept=".xlsx,.xls,.csv" style="display:none">
   <span class="save-note" id="save-note">Synced</span>
 </div>
@@ -174,17 +180,17 @@
   </div>
 </div>
 
-<div class="version-note">v38</div>
+<div class="version-note">v39</div>
 
 <!-- Firebase (compat SDK — no build step needed) -->
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 
-<script src="firebase-config.js?v=38"></script>
-<script src="guests.js?v=38"></script>
-<script src="restore-snapshot.js?v=38"></script>
-<script src="floorplan.js?v=38"></script>
-<script src="app.js?v=38"></script>
+<script src="firebase-config.js?v=39"></script>
+<script src="guests.js?v=39"></script>
+<script src="restore-snapshot.js?v=39"></script>
+<script src="floorplan.js?v=39"></script>
+<script src="app.js?v=39"></script>
 </body>
 </html>
