@@ -995,15 +995,19 @@ function openSpotDialog(i){
    the numbers on the circles change. The sweetheart spot keeps 'SH'. */
 function renumberByPosition(){
   if(layoutLock){ alert('The layout is locked. Unlock it first.'); return; }
-  if(!confirm('Renumber ALL tables in reading order (top row first, left to right)?\n\n' +
-    'No group moves — only the numbers change, everywhere at once. ' +
-    'You can still edit any single number afterwards.')) return;
+  if(!confirm('Renumber ALL tables starting at the cocktail-hour opening?\n\n' +
+    'Table 1 sits nearest the pipe-and-drape entrance; numbers climb as guests ' +
+    'walk deeper into the room (column by column, top to bottom). No group ' +
+    'moves — only the numbers change. Single numbers stay editable afterwards.')) return;
+  /* feed renumber() swapped coordinates: it clusters on "y" and sorts by "x",
+     so swapping makes it cluster into COLUMNS (by x) and order each column
+     top-to-bottom — exactly the walk-east-from-the-entrance order */
   const idx = mapSlots.map((s, i)=>({ i, x:s.x, y:s.y, sh: String(s.n).toUpperCase() === 'SH' }));
-  const ordered = FloorPlan.renumber(idx.filter(s=>!s.sh).map(s=>({ id:s.i, x:s.x, y:s.y })));
+  const ordered = FloorPlan.renumber(idx.filter(s=>!s.sh).map(s=>({ id:s.i, x:s.y, y:s.x })));
   const next = mapSlots.map(s=>Object.assign({}, s));
   ordered.forEach(r=>{ next[r.id].n = r.label; });
   db.ref('mapSlots').set(next);
-  logActivity('<b>' + myName + '</b> renumbered all tables in reading order');
+  logActivity('<b>' + myName + '</b> renumbered all tables starting from the entrance');
 }
 
 function resetFurniture(){
