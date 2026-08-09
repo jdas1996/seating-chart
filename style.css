@@ -457,3 +457,11 @@ body.assign-mode .map-canvas{ height:calc(100vh - 320px); }
   width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:8px;
   margin-bottom:12px; font-family:inherit; font-size:13px; background:#fff;
 }
+
+#tables-col{ flex:1; display:flex; flex-direction:column; min-width:0; }
+#tables-col .tables-wrap{ flex:1; }
+#table-search{
+  margin:14px 18px 0; padding:8px 12px; border:1px solid var(--line);
+  border-radius:8px; font-family:inherit; font-size:13px; max-width:340px;
+}
+.table-card.search-hit{ outline:2px solid var(--gold, #b8965a); }

@@ -376,6 +376,7 @@ function render(){
   // (including empty ones) stay visible below as drop targets
   const wrap = document.getElementById('tables-wrap');
   const mapView = document.getElementById('map-view');
+  document.getElementById('tables-col').classList.toggle('hidden', viewMode !== 'list');
   wrap.classList.toggle('hidden', viewMode !== 'list');
   mapView.classList.toggle('hidden', viewMode === 'list');
   document.getElementById('pool-panel').classList.toggle('hidden', viewMode !== 'list');
@@ -397,12 +398,20 @@ function render(){
   } else {
     wrap.innerHTML = '';
     let ids = tableIdsSorted();
-    if(search){
+    /* the group search box targets table titles only — the guest pool and
+       the guest-name search are untouched by it */
+    const tq = document.getElementById('table-search').value.trim().toLowerCase();
+    if(tq){
+      const titleMatch = id => ((state.tables[id].title || '').toLowerCase().includes(tq));
+      ids = ids.filter(titleMatch).concat(ids.filter(id=>!titleMatch(id)));
+    } else if(search){
       const hasMatch = id => (state.tables[id].seats || []).some(n=>n.toLowerCase().includes(search));
       ids = ids.filter(hasMatch).concat(ids.filter(id=>!hasMatch(id)));
     }
     ids.forEach(id=>{
-      wrap.appendChild(makeTableEl(id, state.tables[id], search));
+      const el = makeTableEl(id, state.tables[id], search);
+      if(tq && (state.tables[id].title || '').toLowerCase().includes(tq)) el.classList.add('search-hit');
+      wrap.appendChild(el);
     });
   }
 
@@ -1228,6 +1237,7 @@ document.getElementById('activity-toggle').addEventListener('click', ()=>{
 function wireToolbar(){
   document.getElementById('search').addEventListener('input', render);
   document.getElementById('bin-search').addEventListener('input', render);
+  document.getElementById('table-search').addEventListener('input', render);
 
   document.getElementById('add-table').addEventListener('click', ()=>{
     const n = Object.keys(state.tables).length + 1;
