@@ -40,6 +40,30 @@ let binned = {};           // groups pulled off the map into the assign bin
 let layoutLock = false;    // when true, positions and assignments are frozen
 let dragTableId = null;    // bin card being dragged in the assign view
 let expandedBins = new Set();   // bin cards showing their full guest list
+
+/* Browser confirm/alert/prompt can be permanently muted by the browser's
+   "prevent additional dialogs" checkbox — which made buttons look dead. These
+   in-page replacements can never be suppressed. */
+function uiDialog(msg, opts){
+  return new Promise(resolve=>{
+    const modal = document.getElementById('ask-modal');
+    document.getElementById('ask-msg').textContent = msg;
+    const input = document.getElementById('ask-input');
+    const cancel = document.getElementById('ask-cancel');
+    input.classList.toggle('hidden', !opts.prompt);
+    input.value = opts.def || '';
+    cancel.classList.toggle('hidden', !!opts.alertOnly);
+    modal.classList.remove('hidden');
+    if(opts.prompt) setTimeout(()=>input.focus(), 50);
+    const done = v=>{ modal.classList.add('hidden'); resolve(v); };
+    document.getElementById('ask-ok').onclick = ()=> done(opts.prompt ? input.value : true);
+    cancel.onclick = ()=> done(opts.prompt ? null : false);
+    input.onkeydown = e=>{ if(e.key === 'Enter') document.getElementById('ask-ok').click(); };
+  });
+}
+const uiConfirm = msg => uiDialog(msg, {});
+const uiAlert   = msg => uiDialog(msg, {alertOnly:true});
+const uiPrompt  = (msg, def) => uiDialog(msg, {prompt:true, def});
 let undoStack = [];             // local snapshots of seatingChart/tables
 function snapshotTables(){
   undoStack.push(JSON.stringify(state.tables));
@@ -549,8 +573,8 @@ function makeTableEl(id, table, search){
   delBtn.className='del-table';
   delBtn.title='Delete table (unseats guests)';
   delBtn.textContent='✕';
-  delBtn.addEventListener('click', ()=>{
-    if(count>0 && !confirm('This table has '+count+' guest(s). Delete it and move them back to Unassigned?')) return;
+  delBtn.addEventListener('click', async ()=>{
+    if(count>0 && !(await uiConfirm('This table has '+count+' guest(s). Delete it and move them back to Unassigned?'))) return;
     snapshotTables();
     db.ref('seatingChart/tables/' + id).remove();
     logActivity('<b>' + myName + '</b> deleted "' + (table.title||'a table') + '"');
@@ -777,11 +801,11 @@ function setView(mode){
 document.getElementById('map-toggle').addEventListener('click', ()=>setView('map'));
 document.getElementById('assign-toggle').addEventListener('click', ()=>setView('assign'));
 
-document.getElementById('lock-btn').addEventListener('click', ()=>{
+document.getElementById('lock-btn').addEventListener('click', async ()=>{
   const msg = layoutLock
     ? 'Unlock the layout so tables and assignments can move again?'
     : 'Lock the layout? Table positions and number assignments will be frozen for everyone until unlocked.';
-  if(!confirm(msg)) return;
+  if(!(await uiConfirm(msg))) return;
   db.ref('layoutLock').set(!layoutLock);
   logActivity('<b>' + myName + '</b> ' + (layoutLock ? 'unlocked' : 'locked') + ' the table layout');
 });
@@ -794,7 +818,7 @@ function seedSlotsIfNeeded(){
   if(mapSlots.length) return true;
   const placed = tableIdsSorted().filter(id=>tablePos[id] && !binned[id]);
   if(!placed.length){
-    alert('Arrange your tables on the Map view first — those positions become the numbered spots.');
+    uiAlert('Arrange your tables on the Map view first — those positions become the numbered spots.');
     return false;
   }
   db.ref('mapSlots').set(placed.map(id=>({ x:tablePos[id].x, y:tablePos[id].y })));
@@ -825,12 +849,12 @@ function slotOfTable(tableId){
   for(const [i, id] of Object.entries(occ)) if(id === tableId) return Number(i);
   return -1;
 }
-function setSlotNumber(slotIdx, newN){
+async function setSlotNumber(slotIdx, newN){
   newN = String(newN).trim();
   if(!newN) return false;
-  if(layoutLock){ alert('The layout is locked. Unlock it first.'); return false; }
+  if(layoutLock){ uiAlert('The layout is locked. Unlock it first.'); return false; }
   const dup = mapSlots.some((s, i)=>i !== slotIdx && String(s.n) === newN);
-  if(dup && !confirm('Another table is already number ' + newN + ' — use it twice anyway?')) return false;
+  if(dup && !(await uiConfirm('Another table is already number ' + newN + ' — use it twice anyway?'))) return false;
   const next = mapSlots.slice();
   next[slotIdx] = Object.assign({}, next[slotIdx], { n: newN });
   db.ref('mapSlots').set(next);
@@ -839,11 +863,11 @@ function setSlotNumber(slotIdx, newN){
 }
 
 function assignGroupToSlot(tableId, slotIdx){
-  if(layoutLock){ alert('The layout is locked. Unlock it first.'); return; }
+  if(layoutLock){ uiAlert('The layout is locked. Unlock it first.'); return; }
   const occ = slotOccupants();
-  if(occ[slotIdx] && occ[slotIdx] !== tableId){ alert('That spot is taken — clear it first.'); return; }
+  if(occ[slotIdx] && occ[slotIdx] !== tableId){ uiAlert('That spot is taken — clear it first.'); return; }
   const s = mapSlots[slotIdx];
-  if(!s || !inRoom(s.x, s.y)){ alert('That spot has bad coordinates — tell Joncy which number it was.'); return; }
+  if(!s || !inRoom(s.x, s.y)){ uiAlert('That spot has bad coordinates — tell Joncy which number it was.'); return; }
   db.ref().update({
     ['tablePos/' + tableId]: { x:s.x, y:s.y },
     ['binned/' + tableId]: null
@@ -929,9 +953,9 @@ function renderAssign(search){
     onDropGroup: i=>{
       if(dragTableId){ assignGroupToSlot(dragTableId, i); dragTableId = null; }
     },
-    onSlotClick: i=>{
+    onSlotClick: async i=>{
       if(layoutLock){ return; }
-      if(!confirm('Delete this empty table spot? Numbering shifts automatically.')) return;
+      if(!(await uiConfirm('Delete this empty table spot? Numbering shifts automatically.'))) return;
       const next = mapSlots.slice();
       next.splice(i, 1);
       db.ref('mapSlots').set(next);
@@ -950,7 +974,7 @@ function renderAssign(search){
 }
 
 /* ---------------- empty-spot dialog ---------------- */
-function openSpotDialog(i){
+async function openSpotDialog(i){
   const s = mapSlots[i];
   if(!s) return;
   const modal = document.getElementById('spot-modal');
@@ -958,8 +982,8 @@ function openSpotDialog(i){
   const nIn = document.getElementById('spot-n');
   nIn.value = slotNumbers()[i] || '';
   nIn.disabled = layoutLock;
-  nIn.onchange = ()=>{
-    if(setSlotNumber(i, nIn.value))
+  nIn.onchange = async ()=>{
+    if(await setSlotNumber(i, nIn.value))
       document.getElementById('spot-num').textContent = '#' + nIn.value.trim();
     else nIn.value = slotNumbers()[i] || '';
   };
@@ -980,9 +1004,9 @@ function openSpotDialog(i){
     assignGroupToSlot(sel.value, i);
     modal.classList.add('hidden');
   };
-  document.getElementById('spot-delete').onclick = ()=>{
-    if(layoutLock){ alert('The layout is locked.'); return; }
-    if(!confirm('Delete empty spot #' + (slotNumbers()[i]||'') + ' from the map?')) return;
+  document.getElementById('spot-delete').onclick = async ()=>{
+    if(layoutLock){ uiAlert('The layout is locked.'); return; }
+    if(!(await uiConfirm('Delete empty spot #' + (slotNumbers()[i]||'') + ' from the map?'))) return;
     const next = mapSlots.slice();
     next.splice(i, 1);
     db.ref('mapSlots').set(next);
@@ -993,12 +1017,12 @@ function openSpotDialog(i){
 /* Renumber every spot in reading order — rows top to bottom, left to right —
    so a guest can follow the numbers across the room. Groups don't move; only
    the numbers on the circles change. The sweetheart spot keeps 'SH'. */
-function renumberByPosition(){
-  if(layoutLock){ alert('The layout is locked. Unlock it first.'); return; }
-  if(!confirm('Renumber ALL tables starting at the cocktail-hour opening?\n\n' +
+async function renumberByPosition(){
+  if(layoutLock){ uiAlert('The layout is locked. Unlock it first.'); return; }
+  if(!(await uiConfirm('Renumber ALL tables starting at the cocktail-hour opening?\n\n' +
     'Table 1 sits nearest the pipe-and-drape entrance; numbers climb as guests ' +
     'walk deeper into the room (column by column, top to bottom). No group ' +
-    'moves — only the numbers change. Single numbers stay editable afterwards.')) return;
+    'moves — only the numbers change. Single numbers stay editable afterwards.'))) return;
   /* feed renumber() swapped coordinates: it clusters on "y" and sorts by "x",
      so swapping makes it cluster into COLUMNS (by x) and order each column
      top-to-bottom — exactly the walk-east-from-the-entrance order */
@@ -1010,16 +1034,16 @@ function renumberByPosition(){
   logActivity('<b>' + myName + '</b> renumbered all tables starting from the entrance');
 }
 
-function resetFurniture(){
-  if(layoutLock){ alert('The layout is locked. Unlock it first.'); return; }
-  if(!confirm('Put the Cake, D.J., Gifts, Photo Booth, Welcome and Seating Chart tables back to their planned spots?')) return;
+async function resetFurniture(){
+  if(layoutLock){ uiAlert('The layout is locked. Unlock it first.'); return; }
+  if(!(await uiConfirm('Put the Cake, D.J., Gifts, Photo Booth, Welcome and Seating Chart tables back to their planned spots?'))) return;
   db.ref('furniPos').set(FURNI_DEFAULT);
   logActivity('<b>' + myName + '</b> reset the furniture positions');
 }
 
 function addSlot(){
-  if(layoutLock){ alert('The layout is locked. Unlock it first.'); return; }
-  if(!mapSlots.length){ alert('Open the Assign view once first so spots exist.'); return; }
+  if(layoutLock){ uiAlert('The layout is locked. Unlock it first.'); return; }
+  if(!mapSlots.length){ uiAlert('Open the Assign view once first so spots exist.'); return; }
   // first venue-diagram position not already close to an existing spot
   const free = FloorPlan.R_TABLES.find(p=>
     !mapSlots.some(s=>Math.hypot(s.x - p[0], s.y - p[1]) < 20));
@@ -1138,9 +1162,9 @@ function renderTableDetail(){
   const mySlot = binned[id] ? -1 : slotOfTable(id);
   numEl.value = mySlot >= 0 ? (slotNumbers()[mySlot] || '') : '—';
   numEl.disabled = mySlot < 0 || layoutLock;
-  numEl.onchange = ()=>{
+  numEl.onchange = async ()=>{
     if(mySlot < 0) return;
-    if(!setSlotNumber(mySlot, numEl.value)) numEl.value = slotNumbers()[mySlot] || '';
+    if(!(await setSlotNumber(mySlot, numEl.value))) numEl.value = slotNumbers()[mySlot] || '';
   };
   const titleInput = document.getElementById('td-title');
   titleInput.value = t.title || 'Table';
@@ -1329,8 +1353,8 @@ function wireToolbar(){
     logActivity('<b>' + myName + '</b> pressed Undo');
   });
 
-  document.getElementById('save-btn').addEventListener('click', ()=>{
-    const name = prompt('Name this save:', 'Save ' + new Date().toLocaleString());
+  document.getElementById('save-btn').addEventListener('click', async ()=>{
+    const name = await uiPrompt('Name this save:', 'Save ' + new Date().toLocaleString());
     if(name === null) return;
     saveBackup(name).then(()=>logActivity('<b>' + myName + '</b> saved a backup: "' + name + '"'));
   });
@@ -1354,8 +1378,8 @@ function wireToolbar(){
       nm.title = new Date(b.ts||0).toLocaleString() + ' by ' + (b.by||'?');
       const go = document.createElement('button');
       go.textContent = 'Restore';
-      go.onclick = ()=>{
-        if(!confirm('Restore "' + (b.name||'this backup') + '"? Current seating is snapshotted for Undo first.')) return;
+      go.onclick = async ()=>{
+        if(!(await uiConfirm('Restore "' + (b.name||'this backup') + '"? Current seating is snapshotted for Undo first.'))) return;
         snapshotTables();
         db.ref('seatingChart/tables').set(b.tables || {});
         logActivity('<b>' + myName + '</b> restored backup "' + (b.name||'') + '"');
@@ -1363,7 +1387,7 @@ function wireToolbar(){
       };
       const del = document.createElement('button');
       del.textContent = '✕';
-      del.onclick = ()=>{ if(confirm('Delete this backup?')) db.ref('backups/' + id).remove(); };
+      del.onclick = async ()=>{ if(await uiConfirm('Delete this backup?')) db.ref('backups/' + id).remove(); };
       row.append(nm, go, del);
       ul.appendChild(row);
     });
@@ -1424,8 +1448,8 @@ function wireToolbar(){
   document.getElementById('reset-furn-btn').addEventListener('click', resetFurniture);
   document.getElementById('renumber-btn').addEventListener('click', renumberByPosition);
 
-  document.getElementById('reset-btn').addEventListener('click', ()=>{
-    if(!confirm("This clears every table's seats and moves everyone back to Unassigned. Table names stay. Continue?")) return;
+  document.getElementById('reset-btn').addEventListener('click', async ()=>{
+    if(!(await uiConfirm("This clears every table's seats and moves everyone back to Unassigned. Table names stay. Continue?"))) return;
     snapshotTables();
     saveBackup('Auto-backup before "Reset to unassigned" (' + myName + ')');
     const updates = {};
@@ -1451,12 +1475,12 @@ function wirePoolDrop(){
 /* ---------------- RSVP export upload (additive only) ---------------- */
 /* ---------------- empty the map: all groups to the bin, spots to default ---- */
 function wireEmptyMap(){
-  document.getElementById('empty-map').addEventListener('click', ()=>{
-    if(layoutLock){ alert('The layout is locked. Unlock it first.'); return; }
+  document.getElementById('empty-map').addEventListener('click', async ()=>{
+    if(layoutLock){ uiAlert('The layout is locked. Unlock it first.'); return; }
     const ids = tableIdsSorted();
-    if(!confirm('Empty the map?\n\nAll ' + ids.length + ' table groups go to the bin (people stay ' +
+    if(!(await uiConfirm('Empty the map?\n\nAll ' + ids.length + ' table groups go to the bin (people stay ' +
       'grouped), and the numbered spots reset to the venue\'s default layout. ' +
-      'Then assign groups by dragging them onto spots.')) return;
+      'Then assign groups by dragging them onto spots.'))) return;
     const updates = {};
     ids.forEach(id=>{
       updates['tablePos/' + id] = null;
@@ -1471,8 +1495,8 @@ function wireEmptyMap(){
 
 /* ---------------- restore board from the baked-in snapshot ---------------- */
 function wireRestoreSnapshot(){
-  document.getElementById('restore-snap').addEventListener('click', ()=>{
-    if(typeof SNAPSHOT === 'undefined' || !SNAPSHOT.length){ alert('No snapshot bundled.'); return; }
+  document.getElementById('restore-snap').addEventListener('click', async ()=>{
+    if(typeof SNAPSHOT === 'undefined' || !SNAPSHOT.length){ uiAlert('No snapshot bundled.'); return; }
     const byTitle = {};
     Object.entries(state.tables).forEach(([id, t])=>{ byTitle[(t.title||'').trim()] = id; });
     let matched = 0, created = 0;
@@ -1488,17 +1512,17 @@ function wireRestoreSnapshot(){
     });
     const extra = Object.values(state.tables)
       .filter(t=>!SNAPSHOT.some(s=>s.title.trim()===(t.title||'').trim())).length;
-    if(!confirm('Restore the Aug 9 snapshot?\n\n' +
+    if(!(await uiConfirm('Restore the Aug 9 snapshot?\n\n' +
       matched + ' existing table(s) get their seat lists reset to the snapshot,\n' +
       created + ' deleted table(s) are re-created with their people,\n' +
       (extra ? extra + ' table(s) not in the snapshot are left alone.\n' : '') +
-      '\nSeat changes made since the snapshot will be overwritten.')) return;
+      '\nSeat changes made since the snapshot will be overwritten.'))) return;
     snapshotTables();
     saveBackup('Auto-backup before snapshot restore (' + myName + ')');
     db.ref().update(updates).then(()=>{
       logActivity('<b>' + myName + '</b> restored the board from the Aug 9 snapshot');
-      alert('Restored. Every table now matches the exported Excel.');
-    }).catch(e=>alert('Restore failed: ' + e.message));
+      uiAlert('Restored. Every table now matches the exported Excel.');
+    }).catch(e=>uiAlert('Restore failed: ' + e.message));
   });
 }
 
@@ -1511,17 +1535,17 @@ function wireRsvpUpload(){
     input.value = '';
     if(!file) return;
     const reader = new FileReader();
-    reader.onload = e=>{
+    reader.onload = async e=>{
       let rows;
       try{
         const wb = XLSX.read(e.target.result, {type:'array'});
         rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:''});
       }catch(err){
-        alert('Could not read that file. Make sure it is the RSVP export (.xlsx or .csv).');
+        uiAlert('Could not read that file. Make sure it is the RSVP export (.xlsx or .csv).');
         return;
       }
       if(!rows.length || !('Reception' in rows[0]) || !('First Name' in rows[0])){
-        alert('That file does not look like the RSVP export — expected columns like "First Name", "Reception", "Meal Choice".');
+        uiAlert('That file does not look like the RSVP export — expected columns like "First Name", "Reception", "Meal Choice".');
         return;
       }
 
@@ -1549,8 +1573,8 @@ function wireRsvpUpload(){
       if(noLonger.length){
         msg += '\n\nFYI — on the board but NOT attending in this file (left untouched; remove by hand if correct):\n• ' + noLonger.join('\n• ');
       }
-      if(added.length===0){ alert(msg); return; }
-      if(!confirm(msg + '\n\nAdd them?')) return;
+      if(added.length===0){ uiAlert(msg); return; }
+      if(!(await uiConfirm(msg + '\n\nAdd them?'))) return;
 
       const updates = {};
       added.forEach(n=>{ updates['guestExtras/' + nameKey(n)] = { name: n, meal: attending[n] }; });
@@ -1668,15 +1692,15 @@ function wireImportModal(){
   document.getElementById('import-cancel').addEventListener('click', ()=>{
     modal.classList.add('hidden');
   });
-  document.getElementById('import-confirm').addEventListener('click', ()=>{
+  document.getElementById('import-confirm').addEventListener('click', async ()=>{
     const raw = document.getElementById('import-text').value.trim();
     if(!raw) return;
     if(Object.keys(state.tables).length > 0){
-      if(!confirm('The board already has tables on it. Importing will ADD these on top rather than replace anything. Continue?')) return;
+      if(!(await uiConfirm('The board already has tables on it. Importing will ADD these on top rather than replace anything. Continue?'))) return;
     }
     let parsed;
     try{ parsed = JSON.parse(raw); }
-    catch(e){ alert("That didn't look like valid JSON. Copy it exactly from the browser console."); return; }
+    catch(e){ uiAlert("That didn't look like valid JSON. Copy it exactly from the browser console."); return; }
 
     const updates = {};
     if(parsed.seatSize) updates['seatingChart/seatSize'] = parsed.seatSize;
