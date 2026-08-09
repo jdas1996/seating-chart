@@ -152,17 +152,10 @@ function buildShell(gRoom, gFixed){
   COCKTAILS.forEach(function(p){
     el('circle', {cx:p[0], cy:p[1], r:8, 'class':'fp-cock'}, gFixed);
   });
-  FURN.forEach(function(f){
-    if(f.kind === 'round'){
-      el('circle', {cx:f.x, cy:f.y, r:f.r, 'class':'fp-furn'}, gFixed);
-      txt(f.x, f.y, f.label, 'fp-lbl-sm', 0, gFixed);
-    } else {
-      el('rect', {x:f.x, y:f.y, width:f.w, height:f.h, 'class':'fp-furn'}, gFixed);
-      var wide = f.below || (f.label.length * 3.4 > f.w && !f.rot);
-      txt(f.x + f.w/2, wide ? (f.y + f.h + 6) : (f.y + f.h/2), f.label, 'fp-lbl-sm', f.rot || 0, gFixed);
-    }
-  });
 }
+/* Furniture is drawn per-frame in draw() now, so the DJ, gifts, cake and the
+   welcome/photo/seating-chart tables can be dragged and their moved positions
+   synced — they were scenery before. */
 
 /* ---------------- numbering ---------------- */
 /* Rows are found by clustering on y, not by banding to a fixed grid: a table
@@ -245,6 +238,25 @@ function draw(opts){
   }
   gItems.textContent = '';
 
+  /* Movable furniture (DJ, gifts, cake, welcome, photo booth, seating chart).
+     Position overrides come from opts.furniturePos {id:{x,y}}; drags report
+     through opts.onMoveFurn(id,x,y). Locked layouts get no drag wiring. */
+  FURN.forEach(function(f){
+    var pos = (opts.furniturePos || {})[f.id] || f;
+    var g = el('g', {'class':'fp-furni', 'data-furn':f.id}, gItems);
+    if(f.kind === 'round'){
+      el('circle', {cx:pos.x, cy:pos.y, r:f.r, 'class':'fp-furn'}, g);
+      txt(pos.x, pos.y, f.label, 'fp-lbl-sm', 0, g);
+      el('circle', {cx:pos.x, cy:pos.y, r:f.r + 4, 'class':'fp-hitarea'}, g);
+    } else {
+      el('rect', {x:pos.x, y:pos.y, width:f.w, height:f.h, 'class':'fp-furn'}, g);
+      var wide = f.below || (f.label.length * 3.4 > f.w && !f.rot);
+      txt(pos.x + f.w/2, wide ? (pos.y + f.h + 6) : (pos.y + f.h/2), f.label, 'fp-lbl-sm', f.rot || 0, g);
+      el('rect', {x:pos.x - 4, y:pos.y - 4, width:f.w + 8, height:f.h + 8, 'class':'fp-hitarea'}, g);
+    }
+    if(!opts.locked && opts.onMoveFurn) wireFurn(svg, g, f, pos, opts);
+  });
+
   /* Empty numbered spots (assign view). Dashed circles, drop targets only. */
   (opts.slots || []).forEach(function(s){
     var g = el('g', {'class':'fp-slot', 'data-slot':s.i}, gItems);
@@ -290,6 +302,33 @@ function draw(opts){
   });
 
   return flags;
+}
+
+function wireFurn(svg, g, f, pos, opts){
+  var hit = g.querySelector('.fp-hitarea');
+  hit.addEventListener('pointerdown', function(e){
+    if(opts.guestDragActive && opts.guestDragActive()) return;
+    e.preventDefault();
+    hit.setPointerCapture(e.pointerId);
+    var start = toUser(svg, e.clientX, e.clientY);
+    var ox = pos.x, oy = pos.y, moved = false;
+    function move(ev){
+      var p = toUser(svg, ev.clientX, ev.clientY);
+      var nx = ox + (p.x - start.x), ny = oy + (p.y - start.y);
+      if(Math.abs(p.x - start.x) + Math.abs(p.y - start.y) > 1.5) moved = true;
+      g.setAttribute('transform', 'translate(' + (nx - pos.x) + ',' + (ny - pos.y) + ')');
+      g._nx = nx; g._ny = ny;
+    }
+    function up(){
+      hit.removeEventListener('pointermove', move);
+      hit.removeEventListener('pointerup', up);
+      hit.removeEventListener('pointercancel', up);
+      if(moved) opts.onMoveFurn(f.id, Math.round(g._nx * 10)/10, Math.round(g._ny * 10)/10);
+    }
+    hit.addEventListener('pointermove', move);
+    hit.addEventListener('pointerup', up);
+    hit.addEventListener('pointercancel', up);
+  });
 }
 
 /* Screen pixels -> SVG user units. Has to go through the live CTM because the
