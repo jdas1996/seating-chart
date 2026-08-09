@@ -154,6 +154,20 @@
   #cpZone.dropping{outline:2px dashed var(--move);outline-offset:4px;border-radius:8px}
   @media (max-width:820px){ #cardsView{flex-direction:column}
     #cardsPool{width:auto;max-height:38vh;border-right:none;border-bottom:1px solid var(--line)} }
+
+  /* ---- group-assign tray over the plan ---- */
+  #grpTray{position:absolute;left:0;right:0;top:0;z-index:6;display:flex;gap:8px;
+    padding:8px 10px;background:rgba(255,254,251,.94);border-bottom:1px solid var(--line);
+    overflow-x:auto;backdrop-filter:blur(3px)}
+  .grpcard{flex:none;width:160px;background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:7px 9px;cursor:grab;box-shadow:0 1px 4px rgba(0,0,0,.06);font-size:11px}
+  .grpcard:active{cursor:grabbing}
+  .grpcard.dragging{opacity:.45}
+  .grpcard b{display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:2px}
+  .grpcard b i{font-style:normal;min-width:20px;height:20px;border-radius:50%;background:var(--accent);
+    color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+  .grpcard .meta{color:var(--muted);line-height:1.35}
+  g.item.grp-dropping .tbl{stroke:var(--move);stroke-width:3;fill:#eef4f2}
   #rosterList li select{font-size:11px;padding:1px 4px;max-width:78px}
   #rosterList li button, #unseatedList li button{padding:2px 6px;font-size:11px}
   #addGuest{margin-top:8px;border-top:1px dotted var(--line);padding-top:8px}
@@ -235,6 +249,7 @@
   <button id="pngBtn">PNG</button>
   <button id="printBtn">Print</button>
   <button id="cardsBtn">Cards</button>
+  <button id="grpBtn">Assign groups</button>
   <button id="mealBtn">Meal counts</button>
   <label class="btn">RSVP upload
     <input id="rsvpFile" type="file" accept=".xlsx,.xls,.csv" style="display:none"></label>
@@ -280,6 +295,7 @@
     <div class="zoombar">
       <button id="zIn">+</button><button id="zOut">&minus;</button><button id="zFit" title="Fit">⤢</button>
     </div>
+    <div id="grpTray" style="display:none"></div>
   </div>
 
   <aside id="aside">
@@ -401,6 +417,6 @@
 
 <div id="toast"></div>
 
-<script type="module" src="./app.js?v=2.1.0"></script>
+<script type="module" src="./app.js?v=2.2.0"></script>
 </body>
 </html>
