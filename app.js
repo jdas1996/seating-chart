@@ -39,6 +39,7 @@ let mapSlots = [];         // frozen spot coordinates for the assign view
 let binned = {};           // groups pulled off the map into the assign bin
 let layoutLock = false;    // when true, positions and assignments are frozen
 let dragTableId = null;    // bin card being dragged in the assign view
+let expandedBins = new Set();   // bin cards showing their full guest list
 
 /* The venue layout from the floor-plan app's JSON backup: every numbered spot
    at its exact position, numbers FIXED (they never re-derive from position).
@@ -931,6 +932,37 @@ function renderBin(){
       found.className = 'bin-meta bin-found';
       found.textContent = '→ ' + hits[id];
       card.appendChild(found);
+    }
+
+    /* expandable roster: see everyone in the group before placing it */
+    const tog = document.createElement('button');
+    tog.className = 'bin-toggle';
+    tog.textContent = expandedBins.has(id) ? '▾ hide guests' : '▸ show guests';
+    tog.addEventListener('click', e=>{
+      e.stopPropagation();
+      expandedBins.has(id) ? expandedBins.delete(id) : expandedBins.add(id);
+      renderBin();
+    });
+    card.appendChild(tog);
+    if(expandedBins.has(id)){
+      const list = document.createElement('div');
+      list.className = 'bin-roster';
+      seats.slice().sort((a,b)=>normName(a).localeCompare(normName(b))).forEach(n=>{
+        const row = document.createElement('div');
+        row.className = 'bin-roster-row';
+        const nm = document.createElement('span');
+        nm.textContent = n;
+        row.appendChild(nm);
+        const g = guestByName(n);
+        if(g.meal){
+          const mt = document.createElement('i');
+          mt.className = 'bin-roster-meal';
+          mt.textContent = g.meal;
+          row.appendChild(mt);
+        }
+        list.appendChild(row);
+      });
+      card.appendChild(list);
     }
     card.addEventListener('dragstart', e=>{
       dragTableId = id;

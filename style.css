@@ -435,3 +435,18 @@ body.assign-mode .map-canvas{ height:calc(100vh - 320px); }
 #bin-search{ width:100%; margin-bottom:10px; }
 .bin-card.search-hit{ outline:2px solid var(--gold, #b8965a); background:#fdf8ec; }
 .bin-found{ color:#8a6d3b; font-weight:600; }
+
+.bin-toggle{
+  border:none; background:transparent; color:#8a6d3b; cursor:pointer;
+  font-size:11px; padding:4px 0 0; font-family:inherit;
+}
+.bin-roster{ margin-top:6px; border-top:1px dotted var(--line); padding-top:4px; }
+.bin-roster-row{
+  display:flex; align-items:center; gap:6px; font-size:12px;
+  padding:2px 0; border-bottom:1px dotted #eee8da;
+}
+.bin-roster-row span{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.bin-roster-meal{
+  font-style:normal; font-size:9px; background:#f4ead6; color:#8a6d3b;
+  border-radius:8px; padding:1px 5px; text-transform:uppercase; flex:none;
+}
