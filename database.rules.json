@@ -1,0 +1,69 @@
+// Realtime Database security rules for the reception seating chart.
+//
+// This file is the real access control. The sign-in screen in the app is a
+// courtesy; these rules are what stop someone talking to the database
+// directly with the config that every Firebase web app ships to the browser.
+//
+// Two owners are hardcoded below and in OWNERS in app.js — THOSE TWO LISTS
+// MUST STAY IN SYNC. Everyone else is added at runtime to config/allowlist
+// from the "Who can access" panel, so adding a coordinator needs no deploy.
+//
+// Emails are keyed with commas because Realtime Database keys cannot contain
+// . # $ / [ ] — app.js does the same swap in emailKey().
+//
+// Note that a rule expression can read anywhere in the tree regardless of the
+// read rules, which is why a coordinator can be checked against the allowlist
+// without being allowed to read it.
+//
+// Deploy with:  npx -y firebase-tools deploy --only database --project reception-2-c6190
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "config": {
+      "allowlist": {
+        ".read": "auth != null && auth.token.email_verified == true && (auth.token.email.toLowerCase() == 'jdas1996@gmail.com' || auth.token.email.toLowerCase() == 'novena.christal21@gmail.com')",
+        ".write": "auth != null && auth.token.email_verified == true && (auth.token.email.toLowerCase() == 'jdas1996@gmail.com' || auth.token.email.toLowerCase() == 'novena.christal21@gmail.com')",
+        "$emailKey": {
+          ".validate": "newData.isBoolean()"
+        }
+      }
+    },
+
+    "seatingChart": {
+      ".read":  "auth != null && auth.token.email_verified == true && (auth.token.email.toLowerCase() == 'jdas1996@gmail.com' || auth.token.email.toLowerCase() == 'novena.christal21@gmail.com' || root.child('config/allowlist').child(auth.token.email.toLowerCase().replace('.', ',')).val() == true)",
+      ".write": "auth != null && auth.token.email_verified == true && (auth.token.email.toLowerCase() == 'jdas1996@gmail.com' || auth.token.email.toLowerCase() == 'novena.christal21@gmail.com' || root.child('config/allowlist').child(auth.token.email.toLowerCase().replace('.', ',')).val() == true)"
+    },
+
+    "tablePos": {
+      ".read":  "auth != null && auth.token.email_verified == true && (auth.token.email.toLowerCase() == 'jdas1996@gmail.com' || auth.token.email.toLowerCase() == 'novena.christal21@gmail.com' || root.child('config/allowlist').child(auth.token.email.toLowerCase().replace('.', ',')).val() == true)",
+      ".write": "auth != null && auth.token.email_verified == true && (auth.token.email.toLowerCase() == 'jdas1996@gmail.com' || auth.token.email.toLowerCase() == 'novena.christal21@gmail.com' || root.child('config/allowlist').child(auth.token.email.toLowerCase().replace('.', ',')).val() == true)"
+    },
+
+    "tableMap": {
+      ".read":  "auth != null && auth.token.email_verified == true && (auth.token.email.toLowerCase() == 'jdas1996@gmail.com' || auth.token.email.toLowerCase() == 'novena.christal21@gmail.com' || root.child('config/allowlist').child(auth.token.email.toLowerCase().replace('.', ',')).val() == true)",
+      ".write": "auth != null && auth.token.email_verified == true && (auth.token.email.toLowerCase() == 'jdas1996@gmail.com' || auth.token.email.toLowerCase() == 'novena.christal21@gmail.com' || root.child('config/allowlist').child(auth.token.email.toLowerCase().replace('.', ',')).val() == true)"
+    },
+
+    "groupOverrides": {
+      ".read":  "auth != null && auth.token.email_verified == true && (auth.token.email.toLowerCase() == 'jdas1996@gmail.com' || auth.token.email.toLowerCase() == 'novena.christal21@gmail.com' || root.child('config/allowlist').child(auth.token.email.toLowerCase().replace('.', ',')).val() == true)",
+      ".write": "auth != null && auth.token.email_verified == true && (auth.token.email.toLowerCase() == 'jdas1996@gmail.com' || auth.token.email.toLowerCase() == 'novena.christal21@gmail.com' || root.child('config/allowlist').child(auth.token.email.toLowerCase().replace('.', ',')).val() == true)"
+    },
+
+    "guestExtras": {
+      ".read":  "auth != null && auth.token.email_verified == true && (auth.token.email.toLowerCase() == 'jdas1996@gmail.com' || auth.token.email.toLowerCase() == 'novena.christal21@gmail.com' || root.child('config/allowlist').child(auth.token.email.toLowerCase().replace('.', ',')).val() == true)",
+      ".write": "auth != null && auth.token.email_verified == true && (auth.token.email.toLowerCase() == 'jdas1996@gmail.com' || auth.token.email.toLowerCase() == 'novena.christal21@gmail.com' || root.child('config/allowlist').child(auth.token.email.toLowerCase().replace('.', ',')).val() == true)"
+    },
+
+    "presence": {
+      ".read":  "auth != null && auth.token.email_verified == true && (auth.token.email.toLowerCase() == 'jdas1996@gmail.com' || auth.token.email.toLowerCase() == 'novena.christal21@gmail.com' || root.child('config/allowlist').child(auth.token.email.toLowerCase().replace('.', ',')).val() == true)",
+      ".write": "auth != null && auth.token.email_verified == true && (auth.token.email.toLowerCase() == 'jdas1996@gmail.com' || auth.token.email.toLowerCase() == 'novena.christal21@gmail.com' || root.child('config/allowlist').child(auth.token.email.toLowerCase().replace('.', ',')).val() == true)"
+    },
+
+    "activity": {
+      ".read":  "auth != null && auth.token.email_verified == true && (auth.token.email.toLowerCase() == 'jdas1996@gmail.com' || auth.token.email.toLowerCase() == 'novena.christal21@gmail.com' || root.child('config/allowlist').child(auth.token.email.toLowerCase().replace('.', ',')).val() == true)",
+      ".write": "auth != null && auth.token.email_verified == true && (auth.token.email.toLowerCase() == 'jdas1996@gmail.com' || auth.token.email.toLowerCase() == 'novena.christal21@gmail.com' || root.child('config/allowlist').child(auth.token.email.toLowerCase().replace('.', ',')).val() == true)"
+    }
+  }
+}

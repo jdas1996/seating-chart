@@ -4,16 +4,31 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reception Seating Chart</title>
-<link rel="stylesheet" href="style.css?v=20">
+<link rel="stylesheet" href="style.css?v=22">
 </head>
 <body>
 
 <div id="name-gate" class="name-gate">
   <div class="name-card">
-    <h2>Who's joining?</h2>
-    <p>This lets your partner see who's editing what, live.</p>
-    <input type="text" id="name-input" placeholder="Your first name" maxlength="20">
-    <button id="name-submit" class="primary">Start planning</button>
+    <h2>Reception Seating Chart</h2>
+    <p class="gate-date">Saturday, August 22, 2026</p>
+
+    <div id="gate-loading" class="gate-step">
+      <p>Checking your sign-in…</p>
+    </div>
+
+    <div id="gate-signin" class="gate-step hidden">
+      <p>The guest list is private. Sign in to continue.</p>
+      <button id="google-signin" class="gbtn">Sign in with Google</button>
+      <p class="gate-err" id="gate-error"></p>
+    </div>
+
+    <div id="gate-denied" class="gate-step hidden">
+      <p>You're signed in as <b id="denied-email"></b>, but that address isn't on
+         the access list for this seating chart.</p>
+      <p class="gate-hint">Ask Joncy to add you, then reload.</p>
+      <button id="denied-signout" class="ghost">Sign in as someone else</button>
+    </div>
   </div>
 </div>
 
@@ -46,8 +61,28 @@
   <button class="ghost" id="rsvp-upload-btn">Upload RSVP export…</button>
   <button class="ghost" id="meal-count-btn">Download meal counts</button>
   <button class="ghost" id="guest-list-btn">Download lists</button>
+  <button class="ghost hidden" id="access-btn">Who can access</button>
   <input type="file" id="rsvp-file" accept=".xlsx,.xls,.csv" style="display:none">
   <span class="save-note" id="save-note">Synced</span>
+  <span class="who-am-i" id="who-am-i"></span>
+  <button class="ghost" id="signout-btn">Sign out</button>
+</div>
+
+<div id="access-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <h3>Who can access</h3>
+    <p>Anyone signed in with one of these Google addresses can view and edit the
+       seating chart. The two of you are always allowed and can't be removed here.</p>
+    <ul class="access-list" id="access-list"></ul>
+    <div class="row-add">
+      <input type="text" id="access-email" placeholder="coordinator@example.com">
+      <button class="primary" id="access-add">Add</button>
+    </div>
+    <p class="gate-hint" id="access-note"></p>
+    <div class="modal-actions">
+      <button class="ghost" id="access-close">Done</button>
+    </div>
+  </div>
 </div>
 
 <div class="layout">
@@ -65,8 +100,14 @@
 
   <div class="tables-wrap" id="tables-wrap"></div>
   <div class="map-view hidden" id="map-view">
-    <div class="map-hint">Drag circles to match your room. Drop a guest name onto a table to seat them.</div>
-    <div id="map-canvas" class="map-canvas"></div>
+    <div class="map-hint">The real room, traced from the venue diagram. Drag a table to move it. Drop a guest name onto a table to seat them.</div>
+    <div class="fp-warnbar">
+      <span id="fp-clash">Too close <b>0</b></span>
+      <span class="fp-note">Numbers follow the room — top to bottom, left to right — and update as you drag.</span>
+    </div>
+    <div id="map-canvas" class="map-canvas">
+      <svg id="fp-svg" class="fp-svg"></svg>
+    </div>
   </div>
 </div>
 
@@ -103,15 +144,17 @@
   </div>
 </div>
 
-<div class="version-note">v20</div>
+<div class="version-note">v22</div>
 
 <!-- Firebase (compat SDK — no build step needed) -->
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 
-<script src="firebase-config.js?v=20"></script>
-<script src="guests.js?v=20"></script>
-<script src="app.js?v=20"></script>
+<script src="firebase-config.js?v=22"></script>
+<script src="guests.js?v=22"></script>
+<script src="floorplan.js?v=22"></script>
+<script src="app.js?v=22"></script>
 </body>
 </html>

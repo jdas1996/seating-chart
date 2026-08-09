@@ -86,3 +86,44 @@ Files in this folder:
   in `app.js` depends on these exact paths.
 - If asked to add features, that's fine — just don't silently refactor
   working code while doing routine deployment.
+
+---
+
+## Access control (added in v22)
+
+The board is behind a Google sign-in. Two things enforce it, and only the
+second one actually matters:
+
+- `OWNERS` in `app.js` — the client-side gate and who sees "Who can access"
+- `database.rules.json` — the real enforcement, deployed separately
+
+**Those two owner lists must stay in sync.** They are `jdas1996@gmail.com` and
+`novena.christal21@gmail.com`. Everyone else is added at runtime to
+`config/allowlist` from the "Who can access" panel, so onboarding a wedding
+coordinator never needs a code change — only edit the source if an *owner*
+changes.
+
+Emails are keyed with every dot swapped for a comma (`a,b@gmail,com`), because
+Realtime Database keys cannot contain `.` `#` `$` `/` `[` `]`. `emailKey()` in
+`app.js` and `replace('.', ',')` in the rules must agree.
+
+Rules deploy on their own, because they change rarely:
+
+```bash
+npx -y firebase-tools deploy --only database --project reception-2-c6190
+```
+
+**Deploying the rules locks out any client that is not signed in — including
+an older cached copy of this app.** Ship the app first, then the rules.
+
+The `firebaseConfig` in `firebase-config.js` is public by design; every
+Firebase web app ships its config to the browser. Security comes from the
+rules plus the allowlist, not from hiding those values.
+
+## Guardrails (continued)
+
+- `tablePos/{id}` holds floor-plan positions in SVG user units. The older
+  `tableMap/{id}` (0–1 fractions of the old sketch canvas) is dead but kept as
+  a backup — the two are not interchangeable.
+- `floorplan.js` touches no Firebase and no app state on purpose, so the room
+  geometry stays shared with the reception-plan app rather than forking.
