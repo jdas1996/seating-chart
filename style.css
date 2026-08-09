@@ -386,3 +386,22 @@ button.ghost{ border-color:var(--line); color:var(--ink-soft); }
 .bin-title{ font-size:14px; }
 .bin-meta{ font-size:11px; color:var(--ink-soft); margin-top:3px; line-height:1.4; }
 #lock-btn.locked{ background:#8a5c5c; color:#fff; border-color:#8a5c5c; }
+
+/* full-width assign mode: bin becomes a tray above the map */
+.table-cap{
+  width:44px; font-size:12px; padding:2px 4px; border:1px solid var(--line);
+  border-radius:6px; margin:0 6px; text-align:center;
+}
+body.assign-mode .layout{ flex-direction:column; }
+body.assign-mode #bin-panel{
+  position:static; width:auto; min-width:0; height:auto; overflow:visible;
+  border-right:none; border-bottom:1px solid var(--line);
+}
+body.assign-mode #bin-zone{
+  display:flex; flex-wrap:nowrap; overflow-x:auto; gap:8px; padding-bottom:6px;
+}
+body.assign-mode .bin-card{ min-width:180px; max-width:220px; flex-shrink:0; margin-bottom:0; }
+body.assign-mode #bin-panel .meal-key{ display:none; }
+body.assign-mode .map-view{ width:100%; margin:12px 18px; }
+body.assign-mode .map-canvas{ height:calc(100vh - 320px); }
+.fp-warnbar #add-slot-btn{ margin:0 10px; font-size:12px; padding:3px 10px; }

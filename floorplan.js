@@ -257,6 +257,9 @@ function draw(opts){
       g.classList.remove('fp-dropping');
       if(opts.onDropGroup) opts.onDropGroup(s.i);
     });
+    g.addEventListener('click', function(){
+      if(opts.onSlotClick) opts.onSlotClick(s.i);
+    });
   });
 
   var flags = issues(opts.tables);

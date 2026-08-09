@@ -265,6 +265,11 @@ function tableNumber(id){
   return tableNumbers()[id] || 0;
 }
 
+// per-table capacity (8–12); falls back to the global default for old tables
+function tableCap(t){
+  return (t && t.cap) ? t.cap : state.seatSize;
+}
+
 function findTableOf(name){
   for(const id of Object.keys(state.tables)){
     const seats = state.tables[id].seats || [];
@@ -330,6 +335,8 @@ function render(){
   mapView.classList.toggle('hidden', viewMode === 'list');
   document.getElementById('pool-panel').classList.toggle('hidden', viewMode === 'assign');
   document.getElementById('bin-panel').classList.toggle('hidden', viewMode !== 'assign');
+  document.body.classList.toggle('assign-mode', viewMode === 'assign');
+  document.getElementById('add-slot-btn').classList.toggle('hidden', viewMode !== 'assign');
   if(viewMode === 'map'){
     document.getElementById('map-hint').textContent =
       'The real room, traced from the venue diagram. Drag a table to move it. Drop a guest name onto a table to seat them.';
@@ -446,9 +453,21 @@ function makeTableEl(id, table, search){
     logActivity('<b>' + myName + '</b> renamed a table to "' + newTitle + '"');
   });
 
+  const capInput = document.createElement('input');
+  capInput.type='number'; capInput.min=8; capInput.max=12;
+  capInput.className='table-cap';
+  capInput.title='Seats at this table (8–12)';
+  capInput.value = tableCap(table);
+  capInput.addEventListener('change', ()=>{
+    const v = Math.min(12, Math.max(8, parseInt(capInput.value,10) || tableCap(table)));
+    capInput.value = v;
+    db.ref('seatingChart/tables/' + id + '/cap').set(v);
+    logActivity('<b>' + myName + '</b> set "' + (table.title||'a table') + '" to ' + v + ' seats');
+  });
+
   const countBadge = document.createElement('div');
   countBadge.className='table-count';
-  const cap = state.seatSize;
+  const cap = tableCap(table);
   const count = (table.seats || []).length;
   countBadge.textContent = count + '/' + cap;
   if(count === cap) countBadge.classList.add('full');
@@ -465,6 +484,7 @@ function makeTableEl(id, table, search){
   });
 
   head.appendChild(titleInput);
+  head.appendChild(capInput);
   head.appendChild(countBadge);
   head.appendChild(delBtn);
   card.appendChild(head);
@@ -613,7 +633,7 @@ function renderMap(search){
       y: pos.y,
       r: /^sweetheart/i.test(table.title || '') ? FloorPlan.SWEET_POS.r : 14,
       count: seats.length,
-      cap: state.seatSize,
+      cap: tableCap(table),
       label: String(nums[id] || '')
     };
   });
@@ -748,7 +768,7 @@ function renderAssign(search){
       id, title: table.title || 'Table',
       x: mapSlots[i].x, y: mapSlots[i].y,
       r: /^sweetheart/i.test(table.title||'') ? FloorPlan.SWEET_POS.r : 14,
-      count: seats.length, cap: state.seatSize, label: String(nums[i]||'')
+      count: seats.length, cap: tableCap(table), label: String(nums[i]||'')
     });
   });
 
@@ -776,6 +796,14 @@ function renderAssign(search){
     onDropGroup: i=>{
       if(dragTableId){ assignGroupToSlot(dragTableId, i); dragTableId = null; }
     },
+    onSlotClick: i=>{
+      if(layoutLock){ return; }
+      if(!confirm('Delete this empty table spot? Numbering shifts automatically.')) return;
+      const next = mapSlots.slice();
+      next.splice(i, 1);
+      db.ref('mapSlots').set(next);
+      logActivity('<b>' + myName + '</b> deleted a table spot from the map');
+    },
     onDropGuest: id=>{
       if(!dragGuestName) return;
       moveGuestToTable(dragGuestName, id, (state.tables[id] || {}).title);
@@ -786,6 +814,17 @@ function renderAssign(search){
   const clashEl = document.getElementById('fp-clash');
   clashEl.querySelector('b').textContent = 0;
   clashEl.classList.remove('on');
+}
+
+function addSlot(){
+  if(layoutLock){ alert('The layout is locked. Unlock it first.'); return; }
+  if(!mapSlots.length){ alert('Open the Assign view once first so spots exist.'); return; }
+  // first venue-diagram position not already close to an existing spot
+  const free = FloorPlan.R_TABLES.find(p=>
+    !mapSlots.some(s=>Math.hypot(s.x - p[0], s.y - p[1]) < 20));
+  const pos = free ? { x:free[0], y:free[1] } : { x:500, y:466 };  // else dance floor
+  db.ref('mapSlots').set(mapSlots.concat([pos]));
+  logActivity('<b>' + myName + '</b> added a table spot to the map');
 }
 
 function renderBin(){
@@ -926,7 +965,8 @@ function wireToolbar(){
     const ids = tableIdsSorted();
     ids.forEach(id=>{
       const current = (state.tables[id].seats || []).slice();
-      while(current.length < cap && pool.length>0){
+      const tcap = tableCap(state.tables[id]);
+      while(current.length < tcap && pool.length>0){
         current.push(pool.shift());
       }
       updates['seatingChart/tables/' + id + '/seats'] = current;
@@ -945,6 +985,7 @@ function wireToolbar(){
 
   document.getElementById('meal-count-btn').addEventListener('click', downloadMealCounts);
   document.getElementById('guest-list-btn').addEventListener('click', downloadGuestLists);
+  document.getElementById('add-slot-btn').addEventListener('click', addSlot);
 
   document.getElementById('reset-btn').addEventListener('click', ()=>{
     if(!confirm("This clears every table's seats and moves everyone back to Unassigned. Table names stay. Continue?")) return;
