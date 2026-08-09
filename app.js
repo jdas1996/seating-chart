@@ -343,14 +343,16 @@ function render(){
   const mapView = document.getElementById('map-view');
   wrap.classList.toggle('hidden', viewMode !== 'list');
   mapView.classList.toggle('hidden', viewMode === 'list');
-  document.getElementById('pool-panel').classList.toggle('hidden', viewMode === 'assign');
-  document.getElementById('bin-panel').classList.toggle('hidden', viewMode !== 'assign');
+  document.getElementById('pool-panel').classList.toggle('hidden', viewMode !== 'list');
+  document.getElementById('bin-panel').classList.toggle('hidden', viewMode === 'list');
   document.body.classList.toggle('assign-mode', viewMode === 'assign');
-  document.getElementById('add-slot-btn').classList.toggle('hidden', viewMode !== 'assign');
+  document.getElementById('add-slot-btn').classList.toggle('hidden', viewMode === 'list');
   if(viewMode === 'map'){
-    document.getElementById('map-hint').textContent =
-      'The real room, traced from the venue diagram. Drag a table to move it. Drop a guest name onto a table to seat them.';
+    document.getElementById('map-hint').textContent = layoutLock
+      ? 'Layout is locked. Unlock to move tables.'
+      : 'The real room. Unassigned table groups are on the left — drag one onto a dashed numbered spot to place it. Drag tables and furniture to arrange; click a table for its roster.';
     renderMap(search);
+    renderBin();
   } else if(viewMode === 'assign'){
     document.getElementById('map-hint').textContent = layoutLock
       ? 'Layout is locked. Unlock to move groups.'
@@ -650,22 +652,40 @@ function renderMap(search){
     };
   });
 
+  /* empty numbered spots (from the frozen slot list) draw alongside the
+     placed tables, so the map is also the assignment surface */
+  const occ = mapSlots.length ? slotOccupants() : {};
+  const slotNums2 = mapSlots.length ? slotNumbers() : {};
+  const emptySlots = mapSlots
+    .map((s,i)=>({ i, x:s.x, y:s.y, label:String(slotNums2[i]||'') }))
+    .filter(s=>!(s.i in occ));
+
   const flags = FloorPlan.draw({
     svg: svg,
     tables: tables,
     searchHit: searchHit,
     locked: layoutLock,
+    slots: emptySlots,
     furniturePos: furniPos,
     onMoveFurn: (fid, x, y)=>{
       if(layoutLock){ render(); return; }
       db.ref('furniPos/' + fid).set({ x, y });
     },
-
-    guestDragActive: ()=>!!dragGuestName,
+    guestDragActive: ()=>!!dragGuestName || !!dragTableId,
     onSelect: id=>openTableDetail(id),
     onMove: (id, x, y)=>{
       if(layoutLock){ render(); return; }
       db.ref('tablePos/' + id).set({ x:x, y:y });
+    },
+    onDropGroup: i=>{
+      if(dragTableId){ assignGroupToSlot(dragTableId, i); dragTableId = null; }
+    },
+    onSlotClick: i=>{
+      if(layoutLock) return;
+      if(!confirm('Delete this empty table spot? Numbering shifts automatically.')) return;
+      const next = mapSlots.slice();
+      next.splice(i, 1);
+      db.ref('mapSlots').set(next);
     },
     onDropGuest: id=>{
       if(!dragGuestName) return;
