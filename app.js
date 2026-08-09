@@ -820,6 +820,24 @@ function slotOccupants(){
   return occ;
 }
 
+function slotOfTable(tableId){
+  const occ = slotOccupants();
+  for(const [i, id] of Object.entries(occ)) if(id === tableId) return Number(i);
+  return -1;
+}
+function setSlotNumber(slotIdx, newN){
+  newN = String(newN).trim();
+  if(!newN) return false;
+  if(layoutLock){ alert('The layout is locked. Unlock it first.'); return false; }
+  const dup = mapSlots.some((s, i)=>i !== slotIdx && String(s.n) === newN);
+  if(dup && !confirm('Another table is already number ' + newN + ' — use it twice anyway?')) return false;
+  const next = mapSlots.slice();
+  next[slotIdx] = Object.assign({}, next[slotIdx], { n: newN });
+  db.ref('mapSlots').set(next);
+  logActivity('<b>' + myName + '</b> renumbered a table spot to #' + newN);
+  return true;
+}
+
 function assignGroupToSlot(tableId, slotIdx){
   if(layoutLock){ alert('The layout is locked. Unlock it first.'); return; }
   const occ = slotOccupants();
@@ -937,6 +955,14 @@ function openSpotDialog(i){
   if(!s) return;
   const modal = document.getElementById('spot-modal');
   document.getElementById('spot-num').textContent = '#' + (slotNumbers()[i] || '');
+  const nIn = document.getElementById('spot-n');
+  nIn.value = slotNumbers()[i] || '';
+  nIn.disabled = layoutLock;
+  nIn.onchange = ()=>{
+    if(setSlotNumber(i, nIn.value))
+      document.getElementById('spot-num').textContent = '#' + nIn.value.trim();
+    else nIn.value = slotNumbers()[i] || '';
+  };
   const sel = document.getElementById('spot-group');
   sel.innerHTML = '<option value="">Choose a table group…</option>';
   const occupied = new Set(Object.values(slotOccupants()));
@@ -1088,7 +1114,14 @@ function renderTableDetail(){
   if(!t){ closeTableDetail(); return; }
   const seats = t.seats || [];
 
-  document.getElementById('td-number').textContent = binned[id] ? '—' : '#' + tableNumber(id);
+  const numEl = document.getElementById('td-number');
+  const mySlot = binned[id] ? -1 : slotOfTable(id);
+  numEl.value = mySlot >= 0 ? (slotNumbers()[mySlot] || '') : '—';
+  numEl.disabled = mySlot < 0 || layoutLock;
+  numEl.onchange = ()=>{
+    if(mySlot < 0) return;
+    if(!setSlotNumber(mySlot, numEl.value)) numEl.value = slotNumbers()[mySlot] || '';
+  };
   const titleInput = document.getElementById('td-title');
   titleInput.value = t.title || 'Table';
   titleInput.onchange = ()=>{

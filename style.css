@@ -488,3 +488,10 @@ body.assign-mode .map-canvas{ height:calc(100vh - 320px); }
   font-size:10px; text-transform:uppercase; letter-spacing:.06em;
   color:#a05c5c; border-top:1px solid var(--line); padding-top:8px; margin-top:2px;
 }
+
+.td-num-edit{
+  width:52px; text-align:center; font-size:14px; font-weight:600;
+  border:1px solid var(--line); border-radius:14px; padding:4px 6px;
+  background:#fdf8ec; color:#8a6d3b; font-family:inherit;
+}
+.td-num-edit:disabled{ background:#f3efe6; color:#a49c8c; }
