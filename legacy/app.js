@@ -202,6 +202,8 @@ function initRealtime(){
   wirePoolDrop();
   wireImportModal();
   wireRsvpUpload();
+  wireRestoreSnapshot();
+  wireEmptyMap();
 }
 
 function logActivity(text){
@@ -953,12 +955,15 @@ function renderTableDetail(){
     });
   }
 
-  document.getElementById('td-delete').onclick = ()=>{
-    if(seats.length && !confirm('This table has ' + seats.length + ' guest(s). Delete it and move them back to Unassigned?')) return;
-    db.ref('seatingChart/tables/' + id).remove();
-    db.ref('tablePos/' + id).remove();
-    db.ref('binned/' + id).remove();
-    logActivity('<b>' + myName + '</b> deleted "' + (t.title||'a table') + '"');
+  /* From the map, "deleting" only unplaces: the group card returns to the
+     Assign-view bin with everyone still bound. A real delete (which unbinds
+     the people) lives only on the List view's ✕. */
+  const tdDel = document.getElementById('td-delete');
+  tdDel.textContent = 'Remove from map (keeps group)';
+  tdDel.onclick = ()=>{
+    if(!confirm('Take "' + (t.title||'this table') + '" off the map? The group stays together in the Assign-view bin.')) return;
+    db.ref().update({ ['tablePos/' + id]: null, ['binned/' + id]: true });
+    logActivity('<b>' + myName + '</b> removed "' + (t.title||'a table') + '" from the map (group kept)');
     closeTableDetail();
   };
   document.getElementById('td-close').onclick = closeTableDetail;
@@ -1114,6 +1119,58 @@ function wirePoolDrop(){
 }
 
 /* ---------------- RSVP export upload (additive only) ---------------- */
+/* ---------------- empty the map: all groups to the bin, spots to default ---- */
+function wireEmptyMap(){
+  document.getElementById('empty-map').addEventListener('click', ()=>{
+    if(layoutLock){ alert('The layout is locked. Unlock it first.'); return; }
+    const ids = tableIdsSorted();
+    if(!confirm('Empty the map?\n\nAll ' + ids.length + ' table groups go to the bin (people stay ' +
+      'grouped), and the numbered spots reset to the venue\'s default layout. ' +
+      'Then assign groups by dragging them onto spots.')) return;
+    const updates = {};
+    ids.forEach(id=>{
+      updates['tablePos/' + id] = null;
+      updates['binned/' + id] = true;
+    });
+    updates['mapSlots'] = FloorPlan.R_TABLES.map(p=>({ x: p[0], y: p[1] }))
+      .concat([{ x: FloorPlan.SWEET_POS.x, y: FloorPlan.SWEET_POS.y }]);
+    db.ref().update(updates).then(()=>{
+      logActivity('<b>' + myName + '</b> emptied the map — all groups to the bin, spots reset to the venue default');
+    });
+  });
+}
+
+/* ---------------- restore board from the baked-in snapshot ---------------- */
+function wireRestoreSnapshot(){
+  document.getElementById('restore-snap').addEventListener('click', ()=>{
+    if(typeof SNAPSHOT === 'undefined' || !SNAPSHOT.length){ alert('No snapshot bundled.'); return; }
+    const byTitle = {};
+    Object.entries(state.tables).forEach(([id, t])=>{ byTitle[(t.title||'').trim()] = id; });
+    let matched = 0, created = 0;
+    const updates = {};
+    SNAPSHOT.forEach((s, i)=>{
+      const id = byTitle[s.title.trim()];
+      if(id){ updates['seatingChart/tables/' + id + '/seats'] = s.seats; matched++; }
+      else {
+        const nid = 'table-restore-' + Date.now() + '-' + i;
+        updates['seatingChart/tables/' + nid] = { title: s.title, seats: s.seats, order: Date.now() + i };
+        created++;
+      }
+    });
+    const extra = Object.values(state.tables)
+      .filter(t=>!SNAPSHOT.some(s=>s.title.trim()===(t.title||'').trim())).length;
+    if(!confirm('Restore the Aug 9 snapshot?\n\n' +
+      matched + ' existing table(s) get their seat lists reset to the snapshot,\n' +
+      created + ' deleted table(s) are re-created with their people,\n' +
+      (extra ? extra + ' table(s) not in the snapshot are left alone.\n' : '') +
+      '\nSeat changes made since the snapshot will be overwritten.')) return;
+    db.ref().update(updates).then(()=>{
+      logActivity('<b>' + myName + '</b> restored the board from the Aug 9 snapshot');
+      alert('Restored. Every table now matches the exported Excel.');
+    }).catch(e=>alert('Restore failed: ' + e.message));
+  });
+}
+
 function wireRsvpUpload(){
   const input = document.getElementById('rsvp-file');
   document.getElementById('rsvp-upload-btn').addEventListener('click', ()=> input.click());

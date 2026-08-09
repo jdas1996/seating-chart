@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reception Seating Chart</title>
-<link rel="stylesheet" href="style.css?v=25">
+<link rel="stylesheet" href="style.css?v=26">
 </head>
 <body>
 
@@ -48,6 +48,8 @@
   <button class="ghost" id="rsvp-upload-btn">Upload RSVP export…</button>
   <button class="ghost" id="meal-count-btn">Download meal counts</button>
   <button class="ghost" id="guest-list-btn">Download lists</button>
+  <button class="ghost" id="restore-snap">Restore snapshot</button>
+  <button class="ghost" id="empty-map">Empty the map…</button>
   <input type="file" id="rsvp-file" accept=".xlsx,.xls,.csv" style="display:none">
   <span class="save-note" id="save-note">Synced</span>
 </div>
@@ -139,16 +141,17 @@
   </div>
 </div>
 
-<div class="version-note">v25</div>
+<div class="version-note">v26</div>
 
 <!-- Firebase (compat SDK — no build step needed) -->
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 
-<script src="firebase-config.js?v=25"></script>
-<script src="guests.js?v=25"></script>
-<script src="floorplan.js?v=25"></script>
-<script src="app.js?v=25"></script>
+<script src="firebase-config.js?v=26"></script>
+<script src="guests.js?v=26"></script>
+<script src="restore-snapshot.js?v=26"></script>
+<script src="floorplan.js?v=26"></script>
+<script src="app.js?v=26"></script>
 </body>
 </html>
