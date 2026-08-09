@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reception Seating Chart</title>
+<link rel="stylesheet" href="style.css?v=25">
+</head>
+<body>
+
+<div id="name-gate" class="name-gate">
+  <div class="name-card">
+    <h2>Who's joining?</h2>
+    <p>This lets your partner see who's editing what, live.</p>
+    <input type="text" id="name-input" placeholder="Your first name" maxlength="20">
+    <button id="name-submit" class="primary">Start planning</button>
+  </div>
+</div>
+
+<div class="topbar">
+  <div>
+    <h1>Reception Seating Chart</h1>
+    <div class="sub">Drag guests between the pool and tables — synced live</div>
+  </div>
+  <div class="stats">
+    <div><b id="stat-seated">0</b>seated</div>
+    <div><b id="stat-unseated">0</b>unseated</div>
+    <div><b id="stat-tables">0</b>tables</div>
+  </div>
+</div>
+
+<div class="presence-bar" id="presence-bar">
+  <span class="presence-label">Online:</span>
+  <div id="presence-list" class="presence-list"></div>
+  <span id="connection-status" class="connection-status">connecting…</span>
+</div>
+
+<div class="toolbar">
+  <button class="primary" id="add-table">+ Add table</button>
+  <span class="tb-label">Seats per table:</span>
+  <input type="number" id="seat-size" value="10" min="2" max="20">
+  <button id="auto-fill">Auto-fill empty seats</button>
+  <button class="ghost" id="reset-btn">Reset to unassigned</button>
+  <button class="ghost" id="map-toggle">Map view</button>
+  <button class="ghost" id="assign-toggle">Assign tables</button>
+  <button class="ghost" id="lock-btn">🔓 Lock layout</button>
+  <button class="ghost" id="import-btn">Import old layout…</button>
+  <button class="ghost" id="rsvp-upload-btn">Upload RSVP export…</button>
+  <button class="ghost" id="meal-count-btn">Download meal counts</button>
+  <button class="ghost" id="guest-list-btn">Download lists</button>
+  <input type="file" id="rsvp-file" accept=".xlsx,.xls,.csv" style="display:none">
+  <span class="save-note" id="save-note">Synced</span>
+</div>
+
+<div class="layout">
+  <div class="pool" id="pool-panel">
+    <h2>Unassigned Guests</h2>
+    <div class="count" id="pool-count">0 guests</div>
+    <input type="text" id="search" placeholder="Search a name…">
+    <div id="group-filter" class="group-filter hidden"></div>
+    <div id="pool-zone"></div>
+    <div class="meal-key">
+      <div>🏷 meal tags shown next to each name</div>
+      <div style="margin-top:6px;">Drag a name onto any table to seat them.<br>Drag back here to unseat.</div>
+    </div>
+  </div>
+
+  <div class="pool hidden" id="bin-panel">
+    <h2>Table Groups Bin</h2>
+    <div class="count" id="bin-count"></div>
+    <div id="bin-zone"></div>
+    <div class="meal-key">
+      <div>Drag a group onto a numbered spot on the map to assign it that table number.</div>
+      <div style="margin-top:6px;">Click a placed group to send it back here.</div>
+    </div>
+  </div>
+
+  <div class="tables-wrap" id="tables-wrap"></div>
+  <div class="map-view hidden" id="map-view">
+    <div class="map-hint" id="map-hint">The real room, traced from the venue diagram. Drag a table to move it. Drop a guest name onto a table to seat them.</div>
+    <div class="fp-warnbar">
+      <span id="fp-clash">Too close <b>0</b></span>
+      <button class="ghost hidden" id="add-slot-btn">+ Add table spot</button>
+      <span class="fp-note">Numbers follow the room — top to bottom, left to right — and update as you drag.</span>
+    </div>
+    <div id="map-canvas" class="map-canvas">
+      <svg id="fp-svg" class="fp-svg"></svg>
+    </div>
+  </div>
+</div>
+
+<div class="activity-drawer" id="activity-drawer">
+  <div class="activity-head" id="activity-toggle">
+    <span>Recent activity</span>
+    <span id="activity-caret">▾</span>
+  </div>
+  <div class="activity-list" id="activity-list"></div>
+</div>
+
+<div id="import-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <h3>Import an old layout</h3>
+    <p>Paste the JSON you copied from the old single-device version. This only works while the board is empty — it won't overwrite anyone's current work.</p>
+    <textarea id="import-text" rows="8" placeholder='{"seatSize":10,"tables":[...]}'></textarea>
+    <div class="modal-actions">
+      <button class="ghost" id="import-cancel">Cancel</button>
+      <button class="primary" id="import-confirm">Import</button>
+    </div>
+  </div>
+</div>
+
+<div id="group-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <h3>Edit group</h3>
+    <p>Change the group for <b id="group-guest-name"></b>. This syncs for both of you.</p>
+    <select id="group-select"></select>
+    <input type="text" id="group-new" placeholder="…or type a new group name">
+    <div class="modal-actions">
+      <button class="ghost" id="group-cancel">Cancel</button>
+      <button class="primary" id="group-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="table-modal" class="modal-backdrop hidden">
+  <div class="modal table-detail">
+    <div class="td-head">
+      <span class="table-num" id="td-number"></span>
+      <input type="text" id="td-title" class="table-title">
+      <input type="number" id="td-cap" class="table-cap" min="8" max="12" title="Seats (8–12)">
+      <button class="ghost" id="td-close">Close</button>
+    </div>
+    <div id="td-guests" class="td-guests"></div>
+    <div id="td-meals" class="td-meals"></div>
+    <div id="td-allergies"></div>
+    <div class="modal-actions">
+      <button class="ghost danger" id="td-delete">Delete table</button>
+    </div>
+  </div>
+</div>
+
+<div class="version-note">v25</div>
+
+<!-- Firebase (compat SDK — no build step needed) -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+
+<script src="firebase-config.js?v=25"></script>
+<script src="guests.js?v=25"></script>
+<script src="floorplan.js?v=25"></script>
+<script src="app.js?v=25"></script>
+</body>
+</html>

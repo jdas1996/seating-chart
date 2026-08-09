@@ -1,154 +1,362 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Reception Seating Chart</title>
-<link rel="stylesheet" href="style.css?v=25">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#8a6d3b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Christal &amp; Yesudasan — Reception Floor Plan</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='11' fill='none' stroke='%238a6d3b' stroke-width='3'/></svg>">
+<style>
+  :root{
+    --bg:#f6f5f2; --panel:#fffefb; --ink:#23211d; --muted:#6f6a61;
+    --line:#d8d3c9; --accent:#8a6d3b; --accent2:#c9a227;
+    --move:#2f6f6b; --warn:#c0562f; --ok:#3d7a52;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0;overscroll-behavior:none}
+  body{font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg); color:var(--ink); display:flex; flex-direction:column}
+
+  /* ---- login gate ---- */
+  #gate{position:fixed; inset:0; background:linear-gradient(160deg,#faf8f3,#efeae0);
+        display:flex; align-items:center; justify-content:center; z-index:50; padding:24px}
+  #gate .card{background:#fff; border:1px solid var(--line); border-radius:16px; padding:32px 28px;
+        max-width:400px; width:100%; text-align:center; box-shadow:0 10px 40px rgba(0,0,0,.07)}
+  #gate h1{font-size:19px; margin:0 0 4px; letter-spacing:.2px}
+  #gate .date{color:var(--muted); font-size:13px; margin-bottom:22px}
+  #gate p{color:var(--muted); font-size:13px; margin:14px 0 0}
+  .gbtn{display:inline-flex; align-items:center; gap:10px; font:inherit; font-size:15px; font-weight:550;
+        padding:11px 20px; border:1px solid var(--line); background:#fff; border-radius:10px; cursor:pointer}
+  .gbtn:hover{background:#f5f2ec}
+  .err{color:var(--warn); font-size:13px; margin-top:14px; line-height:1.5}
+
+  /* ---- chrome ---- */
+  header{padding:8px 12px; background:var(--panel); border-bottom:1px solid var(--line);
+         display:flex; flex-wrap:wrap; gap:6px; align-items:center}
+  header h1{font-size:14px; margin:0 8px 0 0; font-weight:650; white-space:nowrap}
+  .who{margin-left:auto; display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none}
+  .dot.off{background:#c9c3b7}
+  .avs{display:flex; gap:-4px}
+  .av{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;
+      font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #fff;
+      margin-left:-6px}
+  button, select, label.btn{font:inherit; font-size:13px; padding:6px 10px; border:1px solid var(--line);
+    background:#fff; border-radius:7px; cursor:pointer; color:var(--ink); white-space:nowrap}
+  button:hover,label.btn:hover{background:#f0ede7}
+  button.primary{background:var(--accent); border-color:var(--accent); color:#fff}
+  button.primary:hover{background:#755c31}
+  button.danger{color:var(--warn); border-color:#e5c6ba}
+  button:disabled{opacity:.4; cursor:default}
+  .stats{display:flex; gap:8px; align-items:center; font-size:13px; padding:6px 12px;
+         background:#fffdf7; border-bottom:1px solid var(--line); flex-wrap:wrap}
+  .stats b{font-size:15px}
+  .pill{background:#efece4; border-radius:20px; padding:3px 10px}
+  .pill.bad{background:#fbe6dd; color:var(--warn)}
+  main{flex:1; display:flex; min-height:0}
+  #stage{flex:1; overflow:hidden; background:#fff; position:relative; touch-action:none}
+  svg#plan{display:block; width:100%; height:100%; touch-action:none; background:#fff}
+  aside{width:250px; border-left:1px solid var(--line); background:var(--panel); padding:12px; overflow:auto}
+  aside h2{font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:0 0 8px}
+  .row{display:flex; gap:6px; align-items:center; margin-bottom:8px}
+  .row label{font-size:12px; color:var(--muted); width:58px; flex:none}
+  .row input[type=text], .row input[type=number], .row input[type=email]{
+    flex:1; min-width:0; font:inherit; font-size:13px; padding:5px 7px;
+    border:1px solid var(--line); border-radius:6px; background:#fff; color:var(--ink)}
+  .muted{color:var(--muted); font-size:12px}
+  .sect{margin-top:14px; border-top:1px solid var(--line); padding-top:10px}
+  .sect div.lg{display:flex; gap:8px; align-items:center; margin:5px 0; font-size:12px}
+  .sw{width:15px;height:15px;border-radius:4px;flex:none;border:1px solid #999}
+  .tog{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--muted);
+       border:1px solid var(--line);border-radius:7px;padding:5px 8px;background:#fff;cursor:pointer}
+  .tog input{margin:0}
+  ul.list{list-style:none;margin:6px 0 0;padding:0}
+  ul.list li{display:flex;align-items:center;gap:6px;font-size:12px;padding:4px 0;border-bottom:1px dotted var(--line)}
+  ul.list li span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  ul.list li button{padding:2px 6px;font-size:11px}
+  #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#23211d;color:#fff;
+    padding:9px 16px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:40}
+  #toast.show{opacity:.94}
+  .zoombar{position:absolute;right:10px;bottom:10px;display:flex;flex-direction:column;gap:4px;z-index:5}
+  .zoombar button{width:34px;height:34px;padding:0;font-size:17px;border-radius:8px;
+     box-shadow:0 2px 8px rgba(0,0,0,.08)}
+  /* SVG styles */
+  .wall{fill:none;stroke:#2a2722;stroke-width:2.2;stroke-linejoin:round}
+  .wall-thin{fill:none;stroke:#6a6459;stroke-width:1}
+  .door-leaf{fill:none;stroke:#2a2722;stroke-width:1.6}
+  .door-arc{fill:none;stroke:#6a6459;stroke-width:.9}
+  .divider{stroke:#b3ada1;stroke-width:1;stroke-dasharray:6 4}
+  .roomfill{fill:#fdfcf9}
+  .foyerfill{fill:#f7f5ef}
+  .lbl{font:600 9px sans-serif;fill:#4a463f;text-anchor:middle;dominant-baseline:middle;pointer-events:none;user-select:none}
+  .lbl-sm{font:600 7px sans-serif;fill:#5a554c;text-anchor:middle;dominant-baseline:middle;pointer-events:none;user-select:none}
+  .zone{font:700 11px sans-serif;fill:#a49c8c;text-anchor:middle;letter-spacing:.06em;pointer-events:none;user-select:none}
+  g.item{cursor:grab}
+  g.item.dragging{cursor:grabbing}
+  g.item .hit{fill:transparent;stroke:transparent;stroke-width:6}
+  .tbl{fill:#e8f1ef;stroke:#2f6f6b;stroke-width:1.6}
+  .tbl-num{font:700 11px sans-serif;fill:#1d4a47;text-anchor:middle;dominant-baseline:middle;pointer-events:none;user-select:none}
+  .tbl-seats{font:600 7px sans-serif;fill:#4b7d79;text-anchor:middle;dominant-baseline:middle;pointer-events:none;user-select:none}
+  g.item.sel .tbl,g.item.sel .furn{stroke:#c9a227;stroke-width:2.6}
+  g.item.clash .tbl{fill:#fbe6dd;stroke:#c0562f}
+  g.item.remote .tbl,g.item.remote .furn{stroke:#7b5ea7;stroke-width:2.4}
+  .furn{fill:#efece4;stroke:#7d7669;stroke-width:1.3}
+  .furn.fixedf{fill:#e2ded4;stroke:#8b8478}
+  .cock{fill:#f4f1e8;stroke:#8a8375;stroke-width:1.2}
+  .chair{fill:none;stroke:#9dc0bc;stroke-width:1}
+  .area{fill-opacity:.12;stroke-width:1.4;stroke-dasharray:5 3;pointer-events:none}
+  .area-tag{stroke:none;fill-opacity:.95}
+  .area-lbl{font:700 6.5px sans-serif;fill:#fff;text-anchor:start;dominant-baseline:middle;pointer-events:none;user-select:none}
+  g.item.sel .area{fill-opacity:.2;stroke-dasharray:none;stroke-width:2.4}
+  g.item.remote .area{stroke:#7b5ea7;stroke-width:2.4}
+  .anchor-ring{fill:none;stroke:#c9a227;stroke-width:1.4;stroke-dasharray:3 2;pointer-events:none}
+  .tbl-group{font:600 5.5px sans-serif;fill:#6f6a61;text-anchor:middle;dominant-baseline:middle;pointer-events:none;user-select:none}
+  .badge{stroke:#fff;stroke-width:1;pointer-events:none}
+  .badge.fill{fill:#3d7a52} .badge.under{fill:#c9a227} .badge.over{fill:#c0562f}
+  .badge-t{font:700 5.5px sans-serif;fill:#fff;text-anchor:middle;dominant-baseline:middle;pointer-events:none;user-select:none}
+  #rosterHead.bad{color:var(--warn)} #rosterHead.warn{color:var(--accent2)}
+  #rosterList li .chip{font-style:normal;font-size:10px;background:#efece4;color:var(--muted);
+    border-radius:10px;padding:1px 6px;white-space:nowrap}
+  ul.list li .chip.meal{font-style:normal;font-size:10px;background:#f4ead6;color:#8a6d3b;
+    border-radius:10px;padding:1px 6px;white-space:nowrap;text-transform:uppercase}
+  #rosterList li select{font-size:11px;padding:1px 4px;max-width:78px}
+  #rosterList li button, #unseatedList li button{padding:2px 6px;font-size:11px}
+  #addGuest{margin-top:8px;border-top:1px dotted var(--line);padding-top:8px}
+  #addGuest select{flex:1;min-width:0;font-size:12px}
+  #gHint.bad{color:var(--warn)}
+  #unseatedList li .chip{font-style:normal;font-size:10px;background:#efece4;color:var(--muted);
+    border-radius:10px;padding:1px 6px;white-space:nowrap}
+  #importSummary .bad{color:var(--warn)} #importSummary .ok{color:var(--ok)}
+  #keyList li{gap:7px}
+  #keyList li .sw{border-radius:3px}
+  #keyList li em{font-style:normal;color:var(--muted);font-variant-numeric:tabular-nums;font-size:11px}
+  #keyList li b{min-width:52px;text-align:right;font-size:11px;font-weight:600}
+  #keyList li b.bad{color:var(--warn)} #keyList li b.ok{color:var(--ok)} #keyList li b.muted{color:var(--muted)}
+  #importSummary .est{margin-top:8px;border-top:1px solid #ddc98a;padding-top:6px}
+  #importSummary .est div{display:flex;gap:6px;align-items:baseline;font-size:11px;line-height:1.6}
+  #importSummary .est div span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #importSummary .est div i{font-style:normal;color:var(--muted);min-width:26px;text-align:right}
+  #importSummary .est div b{min-width:34px;text-align:right}
+  .ghosts{pointer-events:none}
+  .ghost{fill:#e8f1ef;fill-opacity:.55;stroke:#2f6f6b;stroke-width:1.6;stroke-dasharray:4 3}
+  .ghost-num{font:700 11px sans-serif;fill:#1d4a47;text-anchor:middle;dominant-baseline:middle;opacity:.8}
+  .ghost-link{stroke:#2f6f6b;stroke-width:.8;stroke-dasharray:2 3;opacity:.5}
+  .ghost-drop{fill:none;stroke:#c0562f;stroke-width:1.6;stroke-dasharray:3 2}
+  #suggestBar{display:none;align-items:center;gap:10px;padding:7px 12px;font-size:12px;
+    background:#fdf6dc;border-top:1px solid #c9a227;color:#5a4a1a;flex-wrap:wrap}
+  .vx{fill:#c9a227;stroke:#fff;stroke-width:1;cursor:move}
+  .draft-line{fill:none;stroke:#c9a227;stroke-width:1.6;stroke-dasharray:4 3}
+  .draft-dot{fill:#c9a227;stroke:#fff;stroke-width:1}
+  .draft-dot0{fill:#fff;stroke:#c9a227;stroke-width:2}
+  #drawHint{display:none;align-items:center;gap:8px;margin-left:6px;padding:4px 10px;
+    border-radius:6px;background:#fdf6dc;border:1px solid #c9a227;font-size:12px;color:#5a4a1a}
+  #ver{flex:none;padding:5px 12px;background:var(--panel);border-top:1px solid var(--line);
+    font:500 11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);user-select:text}
+  .note{fill:#fdf6dc;stroke:#c9a227;stroke-width:1.2}
+  g.item.sel .note{stroke-width:2.6}
+  @media print{ header,aside,.stats,.zoombar,#gate{display:none!important} #stage{overflow:visible} body{background:#fff} }
+  @media (max-width:820px){
+    aside{position:fixed;right:0;top:0;bottom:0;width:250px;z-index:20;transform:translateX(100%);
+          transition:transform .2s;box-shadow:-4px 0 20px rgba(0,0,0,.12)}
+    aside.open{transform:none}
+    header h1{display:none} .stats .pill{padding:3px 8px}
+    header{padding:6px 8px}
+  }
+</style>
 </head>
 <body>
 
-<div id="name-gate" class="name-gate">
-  <div class="name-card">
-    <h2>Who's joining?</h2>
-    <p>This lets your partner see who's editing what, live.</p>
-    <input type="text" id="name-input" placeholder="Your first name" maxlength="20">
-    <button id="name-submit" class="primary">Start planning</button>
+<div id="gate">
+  <div class="card">
+    <h1>Christal &amp; Yesudasan</h1>
+    <div class="date">Reception floor plan &middot; Saturday, August 22, 2026</div>
+    <button class="gbtn" id="signin">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#4285F4" d="M45 24c0-1.6-.1-2.7-.4-3.9H24v7.1h12c-.2 1.9-1.5 4.7-4.4 6.6l6.7 5.2C42.2 35.6 45 30.3 45 24z"/><path fill="#34A853" d="M24 46c5.9 0 10.9-2 14.5-5.3l-6.9-5.4c-1.9 1.3-4.4 2.2-7.6 2.2-5.8 0-10.7-3.8-12.5-9.1l-7.1 5.5C8.1 41 15.5 46 24 46z"/><path fill="#FBBC05" d="M11.5 28.4c-.5-1.4-.7-2.9-.7-4.4s.3-3 .7-4.4l-7.1-5.5C2.9 17 2 20.4 2 24s.9 7 2.4 9.9l7.1-5.5z"/><path fill="#EA4335" d="M24 10.8c4.1 0 6.9 1.8 8.5 3.3l6.2-6C34.9 4.6 29.9 2 24 2 15.5 2 8.1 7 4.4 14.1l7.1 5.5C13.3 14.3 18.2 10.8 24 10.8z"/></svg>
+      Sign in with Google
+    </button>
+    <p>Access is limited to the couple and the wedding coordinators.</p>
+    <div class="err" id="gateErr"></div>
   </div>
 </div>
 
-<div class="topbar">
-  <div>
-    <h1>Reception Seating Chart</h1>
-    <div class="sub">Drag guests between the pool and tables — synced live</div>
+<header>
+  <h1>Reception Floor Plan</h1>
+  <button id="addTable" class="primary">+ Table</button>
+  <button id="addCocktail">+ Cocktail</button>
+  <button id="addNote">+ Note</button>
+  <button id="addArea">+ Group area</button>
+  <span id="drawHint">
+    Click each corner around the tables — <b id="drawCount">0</b> so far.
+    Click the first dot again, double-click, or press Enter to close.
+    <button id="drawDone" class="primary">Close shape</button>
+    <button id="drawCancel">Cancel</button>
+  </span>
+  <button id="dupBtn">Duplicate</button>
+  <button id="delBtn" class="danger">Delete</button>
+  <button id="undoBtn">Undo</button>
+  <button id="autoNum">Renumber</button>
+  <button id="suggestBtn">Suggest layout</button>
+  <button id="verBtn">Versions</button>
+  <button id="pngBtn">PNG</button>
+  <button id="printBtn">Print</button>
+  <button id="mealBtn">Meal counts</button>
+  <label class="btn">RSVP upload
+    <input id="rsvpFile" type="file" accept=".xlsx,.xls,.csv" style="display:none"></label>
+  <button id="panelBtn" style="display:none">Panel</button>
+  <div class="who">
+    <span class="dot off" id="netDot"></span><span id="netTxt">connecting…</span>
+    <div class="avs" id="avs"></div>
+    <button id="signout" style="padding:4px 8px">Sign out</button>
   </div>
-  <div class="stats">
-    <div><b id="stat-seated">0</b>seated</div>
-    <div><b id="stat-unseated">0</b>unseated</div>
-    <div><b id="stat-tables">0</b>tables</div>
-  </div>
+</header>
+
+<div class="stats">
+  <span class="pill">Tables <b id="nTables">0</b></span>
+  <span class="pill">Seats <b id="nSeats">0</b></span>
+  <span class="pill">Cocktail <b id="nCock">0</b></span>
+  <span class="pill" id="clashPill">Too close <b id="nClash">0</b></span>
+  <span class="pill" id="dupPill">Duplicate numbers <b id="nDup">0</b></span>
+  <label class="tog"><input type="checkbox" id="snapChk" checked> Snap</label>
+  <label class="tog"><input type="checkbox" id="numChk" checked> Numbers</label>
+  <label class="tog"><input type="checkbox" id="seatChk" checked> Seats</label>
+  <label class="tog"><input type="checkbox" id="chairChk"> Chairs</label>
+  <label class="tog"><input type="checkbox" id="areaChk" checked> Group areas</label>
 </div>
 
-<div class="presence-bar" id="presence-bar">
-  <span class="presence-label">Online:</span>
-  <div id="presence-list" class="presence-list"></div>
-  <span id="connection-status" class="connection-status">connecting…</span>
-</div>
-
-<div class="toolbar">
-  <button class="primary" id="add-table">+ Add table</button>
-  <span class="tb-label">Seats per table:</span>
-  <input type="number" id="seat-size" value="10" min="2" max="20">
-  <button id="auto-fill">Auto-fill empty seats</button>
-  <button class="ghost" id="reset-btn">Reset to unassigned</button>
-  <button class="ghost" id="map-toggle">Map view</button>
-  <button class="ghost" id="assign-toggle">Assign tables</button>
-  <button class="ghost" id="lock-btn">🔓 Lock layout</button>
-  <button class="ghost" id="import-btn">Import old layout…</button>
-  <button class="ghost" id="rsvp-upload-btn">Upload RSVP export…</button>
-  <button class="ghost" id="meal-count-btn">Download meal counts</button>
-  <button class="ghost" id="guest-list-btn">Download lists</button>
-  <input type="file" id="rsvp-file" accept=".xlsx,.xls,.csv" style="display:none">
-  <span class="save-note" id="save-note">Synced</span>
-</div>
-
-<div class="layout">
-  <div class="pool" id="pool-panel">
-    <h2>Unassigned Guests</h2>
-    <div class="count" id="pool-count">0 guests</div>
-    <input type="text" id="search" placeholder="Search a name…">
-    <div id="group-filter" class="group-filter hidden"></div>
-    <div id="pool-zone"></div>
-    <div class="meal-key">
-      <div>🏷 meal tags shown next to each name</div>
-      <div style="margin-top:6px;">Drag a name onto any table to seat them.<br>Drag back here to unseat.</div>
+<main>
+  <div id="stage">
+    <svg id="plan" xmlns="http://www.w3.org/2000/svg" viewBox="8 300 1090 372" preserveAspectRatio="xMidYMid meet">
+      <g id="gView">
+        <g id="gRoom"></g>
+        <g id="gFixed"></g>
+        <g id="gItems"></g>
+      </g>
+    </svg>
+    <div class="zoombar">
+      <button id="zIn">+</button><button id="zOut">&minus;</button><button id="zFit" title="Fit">⤢</button>
     </div>
   </div>
 
-  <div class="pool hidden" id="bin-panel">
-    <h2>Table Groups Bin</h2>
-    <div class="count" id="bin-count"></div>
-    <div id="bin-zone"></div>
-    <div class="meal-key">
-      <div>Drag a group onto a numbered spot on the map to assign it that table number.</div>
-      <div style="margin-top:6px;">Click a placed group to send it back here.</div>
+  <aside id="aside">
+    <h2>Selected</h2>
+    <div id="noSel" class="muted">Tap a table to select it.</div>
+    <div id="selPanel" style="display:none">
+      <div class="row"><label>Label</label><input id="pLabel" type="text"></div>
+      <div class="row" id="rowSeats"><label>Seats</label><input id="pSeats" type="number" min="0" max="20" step="1"></div>
+      <div class="row" id="rowZoneGroup" style="display:none"><label>Group</label>
+        <select id="pZoneGroup"></select></div>
+      <div class="row" id="rowColor" style="display:none"><label>Colour</label>
+        <select id="pColor"></select></div>
+      <div class="row"><label>Size</label><input id="pSize" type="number" min="4" max="60" step="1"></div>
+      <div class="row"><label>X / Y</label><input id="pX" type="number" step="1"><input id="pY" type="number" step="1"></div>
+      <div class="row" id="rowAnchor"><button id="pAnchor" style="flex:1">Start numbering from this table</button></div>
+      <div class="row" id="rowGroup" style="display:none"><label>Group</label><input id="pGroup" type="text" placeholder="e.g. CityLine"></div>
+      <div class="row"><button id="pDel" class="danger" style="flex:1">Delete this item</button></div>
+      <div id="roster" style="display:none">
+        <h2 style="margin-top:12px">Seated here — <span id="rosterHead"></span></h2>
+        <ul class="list" id="rosterList"></ul>
+        <div id="addGuest">
+          <div class="row"><input id="gName" type="text" autocomplete="off"
+               placeholder="First Last — Enter to add"><button id="gAdd" class="primary">Add</button></div>
+          <div class="row"><label>Group</label><select id="gGroup"></select></div>
+          <div class="muted" id="gHint"></div>
+        </div>
+      </div>
     </div>
-  </div>
 
-  <div class="tables-wrap" id="tables-wrap"></div>
-  <div class="map-view hidden" id="map-view">
-    <div class="map-hint" id="map-hint">The real room, traced from the venue diagram. Drag a table to move it. Drop a guest name onto a table to seat them.</div>
-    <div class="fp-warnbar">
-      <span id="fp-clash">Too close <b>0</b></span>
-      <button class="ghost hidden" id="add-slot-btn">+ Add table spot</button>
-      <span class="fp-note">Numbers follow the room — top to bottom, left to right — and update as you drag.</span>
+    <div class="sect" id="unseatedSect" style="display:none">
+      <h2>Not seated — <span id="unseatedHead"></span></h2>
+      <ul class="list" id="unseatedList"></ul>
+      <div class="muted" id="unseatedNote"></div>
     </div>
-    <div id="map-canvas" class="map-canvas">
-      <svg id="fp-svg" class="fp-svg"></svg>
+
+    <div class="sect" id="verSect" style="display:none">
+      <h2>Saved versions</h2>
+      <div class="row"><input id="verName" type="text" placeholder="e.g. Plan B — 32 tables">
+        <button id="verSave">Save</button></div>
+      <ul class="list" id="verList"></ul>
+      <p class="muted">Saving stores a snapshot everyone can restore later.</p>
     </div>
-  </div>
+
+    <div class="sect">
+      <h2>Legend</h2>
+      <div class="lg"><span class="sw" style="background:#e8f1ef;border-color:#2f6f6b"></span> Round table</div>
+      <div class="lg"><span class="sw" style="background:#f4f1e8;border-color:#8a8375"></span> Cocktail table</div>
+      <div class="lg"><span class="sw" style="background:#efece4;border-color:#7d7669"></span> Other furniture</div>
+      <div class="lg"><span class="sw" style="background:#e2ded4;border-color:#8b8478"></span> Bars / columns — locked</div>
+      <div class="lg"><span class="sw" style="background:#fbe6dd;border-color:#c0562f"></span> Too close together</div>
+      <div class="lg"><span class="sw" style="background:#fff;border-color:#7b5ea7"></span> Someone else is moving it</div>
+    </div>
+
+    <div class="sect" id="keySect">
+      <h2>Group key</h2>
+      <ul class="list" id="keyList"></ul>
+      <div class="muted" id="keyNote" style="margin-top:6px"></div>
+    </div>
+
+    <div class="sect" id="actSect">
+      <h2>Recent activity</h2>
+      <ul class="list" id="actList"></ul>
+    </div>
+
+    <div class="sect" id="migSect" style="display:none">
+      <h2>Old seating board</h2>
+      <div class="row"><button id="migBtn" style="flex:1">Migrate from old board…</button></div>
+      <p class="muted">Reads the old drag-and-drop board (read-only), shows exactly what would be
+        written, and only writes when you confirm. The old board's data stays as a backup.</p>
+      <div id="migPanel" style="display:none;border:1px solid #c9a227;background:#fdf6dc;
+           border-radius:8px;padding:9px;font-size:12px">
+        <pre id="migReport" style="max-height:260px;overflow:auto;white-space:pre-wrap;
+             font-size:10px;line-height:1.5;margin:0 0 8px"></pre>
+        <div class="row" style="margin:0">
+          <button id="migGo" class="primary" style="flex:1">Write to plan</button>
+          <button id="migCancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sect" id="adminSect" style="display:none">
+      <h2>Who can access</h2>
+      <ul class="list" id="allowList"></ul>
+      <div class="row"><input id="newEmail" type="email" placeholder="coordinator@email.com">
+        <button id="addEmail">Add</button></div>
+      <p class="muted">Add your coordinators here when you have their Google email addresses.</p>
+    </div>
+
+    <div class="sect">
+      <h2>Notes</h2>
+      <p class="muted">Changes save automatically and appear on everyone's screen within a second. Scale is approximately 4.7&nbsp;units per foot, traced from the venue's Room Viewer PDF — confirm final spacing with the venue.</p>
+      <div class="row"><button id="resetBtn" style="flex:1">Reset to original PDF layout</button></div>
+      <div class="row"><button id="jsonBtn" style="flex:1">Download .json backup</button></div>
+      <div class="row"><label class="btn" style="flex:1;text-align:center">Import guest seating
+        <input id="importFile" type="file" accept=".json,application/json" style="display:none"></label></div>
+      <div id="importPanel" style="display:none;border:1px solid #c9a227;background:#fdf6dc;
+           border-radius:8px;padding:9px;font-size:12px;line-height:1.5">
+        <div id="importSummary"></div>
+        <div class="row" style="margin:8px 0 0">
+          <button id="importGo" class="primary" style="flex:1">Write to plan</button>
+          <button id="importCancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<div id="suggestBar">
+  <span id="suggestMsg"></span>
+  <label class="tog" id="rowDrop" style="display:none">
+    <input type="checkbox" id="dropChk"> Also delete the <b id="dropN">0</b> left over
+  </label>
+  <span style="flex:1"></span>
+  <button id="suggestOk" class="primary">Accept layout</button>
+  <button id="suggestCancel">Discard</button>
 </div>
 
-<div class="activity-drawer" id="activity-drawer">
-  <div class="activity-head" id="activity-toggle">
-    <span>Recent activity</span>
-    <span id="activity-caret">▾</span>
-  </div>
-  <div class="activity-list" id="activity-list"></div>
-</div>
+<footer id="ver" title="Which deployed build this tab is running. If it differs from what Joncy has, hard-refresh."></footer>
 
-<div id="import-modal" class="modal-backdrop hidden">
-  <div class="modal">
-    <h3>Import an old layout</h3>
-    <p>Paste the JSON you copied from the old single-device version. This only works while the board is empty — it won't overwrite anyone's current work.</p>
-    <textarea id="import-text" rows="8" placeholder='{"seatSize":10,"tables":[...]}'></textarea>
-    <div class="modal-actions">
-      <button class="ghost" id="import-cancel">Cancel</button>
-      <button class="primary" id="import-confirm">Import</button>
-    </div>
-  </div>
-</div>
+<div id="toast"></div>
 
-<div id="group-modal" class="modal-backdrop hidden">
-  <div class="modal">
-    <h3>Edit group</h3>
-    <p>Change the group for <b id="group-guest-name"></b>. This syncs for both of you.</p>
-    <select id="group-select"></select>
-    <input type="text" id="group-new" placeholder="…or type a new group name">
-    <div class="modal-actions">
-      <button class="ghost" id="group-cancel">Cancel</button>
-      <button class="primary" id="group-save">Save</button>
-    </div>
-  </div>
-</div>
-
-<div id="table-modal" class="modal-backdrop hidden">
-  <div class="modal table-detail">
-    <div class="td-head">
-      <span class="table-num" id="td-number"></span>
-      <input type="text" id="td-title" class="table-title">
-      <input type="number" id="td-cap" class="table-cap" min="8" max="12" title="Seats (8–12)">
-      <button class="ghost" id="td-close">Close</button>
-    </div>
-    <div id="td-guests" class="td-guests"></div>
-    <div id="td-meals" class="td-meals"></div>
-    <div id="td-allergies"></div>
-    <div class="modal-actions">
-      <button class="ghost danger" id="td-delete">Delete table</button>
-    </div>
-  </div>
-</div>
-
-<div class="version-note">v25</div>
-
-<!-- Firebase (compat SDK — no build step needed) -->
-<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
-
-<script src="firebase-config.js?v=25"></script>
-<script src="guests.js?v=25"></script>
-<script src="floorplan.js?v=25"></script>
-<script src="app.js?v=25"></script>
+<script type="module" src="./app.js?v=2.0.0"></script>
 </body>
 </html>
