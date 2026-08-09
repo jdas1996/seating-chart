@@ -39,6 +39,15 @@ let mapSlots = [];         // frozen spot coordinates for the assign view
 let binned = {};           // groups pulled off the map into the assign bin
 let layoutLock = false;    // when true, positions and assignments are frozen
 let dragTableId = null;    // bin card being dragged in the assign view
+
+/* The venue layout from the floor-plan app's JSON backup: every numbered spot
+   at its exact position, numbers FIXED (they never re-derive from position).
+   'SH' is the sweetheart spot. Note: the source layout carries "36" twice and
+   no "30" — kept verbatim by request. */
+const FIXED_SLOTS = [{"x": 804, "y": 340, "n": "20"}, {"x": 855, "y": 340, "n": "9"}, {"x": 907, "y": 340, "n": "1"}, {"x": 403, "y": 391, "n": "35"}, {"x": 727, "y": 391, "n": "21"}, {"x": 776, "y": 388, "n": "19"}, {"x": 827, "y": 388, "n": "10"}, {"x": 878, "y": 389, "n": "8"}, {"x": 930, "y": 424, "n": "2"}, {"x": 823, "y": 443, "n": "11"}, {"x": 882, "y": 451, "n": "7"}, {"x": 930, "y": 482, "n": "3"}, {"x": 822, "y": 496, "n": "12"}, {"x": 881, "y": 510, "n": "6"}, {"x": 930, "y": 538, "n": "4"}, {"x": 401, "y": 543, "n": "36"}, {"x": 454, "y": 543, "n": "34"}, {"x": 506, "y": 543, "n": "31"}, {"x": 557, "y": 543, "n": "29"}, {"x": 664, "y": 592, "n": "25"}, {"x": 706, "y": 548, "n": "22"}, {"x": 760, "y": 548, "n": "18"}, {"x": 811, "y": 548, "n": "13"}, {"x": 886, "y": 584, "n": "5"}, {"x": 401, "y": 587, "n": "37"}, {"x": 457, "y": 587, "n": "33"}, {"x": 506, "y": 587, "n": "32"}, {"x": 555, "y": 587, "n": "28"}, {"x": 606, "y": 587, "n": "27"}, {"x": 617, "y": 543, "n": "26"}, {"x": 719, "y": 592, "n": "23"}, {"x": 776, "y": 592, "n": "17"}, {"x": 834, "y": 592, "n": "14"}, {"x": 702, "y": 640, "n": "24"}, {"x": 756, "y": 640, "n": "36"}, {"x": 805, "y": 640, "n": "16"}, {"x": 850, "y": 641, "n": "15"}, {"x": 969.3, "y": 490.0, "n": "SH"}];
+const FURNI_DEFAULT = {"cake":{"x":631.4,"y":433.4},"dj":{"x":459,"y":382.1},"gifts":{"x":386.8,"y":323.9}};
+let slotsMigrated = false;
+
 let presence = {};
 let dragGuestName = null;
 let localDragging = false;   // suppress re-renders while we drag, or the
@@ -182,6 +191,15 @@ function initRealtime(){
 
   db.ref('mapSlots').on('value', snap=>{
     mapSlots = snap.val() || [];
+    /* one-shot upgrade: old slots had no fixed numbers — replace them with
+       the venue layout from the floor-plan backup (idempotent on all clients) */
+    if(!slotsMigrated && (!mapSlots.length || mapSlots[0].n === undefined)){
+      slotsMigrated = true;
+      db.ref('mapSlots').set(FIXED_SLOTS);
+      db.ref('furniPos').update(FURNI_DEFAULT);
+      return;
+    }
+    slotsMigrated = true;
     render();
   });
 
@@ -259,12 +277,8 @@ let numberCache = null;
 function tableNumbers(){
   if(numberCache) return numberCache;
   const map = {};
-  const placed = tableIdsSorted()
-    .filter(id=>tablePos[id] && !binned[id])
-    .map(id=>({ id, x:tablePos[id].x, y:tablePos[id].y }));
-  FloorPlan.renumber(placed).forEach(r=>{ map[r.id] = Number(r.label); });
-  let n = placed.length;
-  tableIdsSorted().forEach(id=>{ if(!map[id]) map[id] = ++n; });
+  const nums = slotNumbers();
+  Object.entries(slotOccupants()).forEach(([i, id])=>{ map[id] = nums[i]; });
   numberCache = map;
   return map;
 }
@@ -642,7 +656,7 @@ function renderMap(search){
     if(search && seats.some(n=>n.toLowerCase().includes(search))) searchHit[id] = true;
     return {
       id: id,
-      title: table.title || 'Table',
+      title: '',   // names stay off the map — numbers only
       x: pos.x,
       y: pos.y,
       r: /^sweetheart/i.test(table.title || '') ? FloorPlan.SWEET_POS.r : 14,
@@ -740,6 +754,7 @@ function slotNumbers(){
   const map = {};
   FloorPlan.renumber(mapSlots.map((s,i)=>({ id:i, x:s.x, y:s.y })))
     .forEach(r=>{ map[r.id] = r.label; });
+  mapSlots.forEach((s,i)=>{ if(s.n !== undefined) map[i] = String(s.n); });
   return map;
 }
 
@@ -804,7 +819,7 @@ function renderAssign(search){
     const seats = table.seats || [];
     if(search && seats.some(n=>n.toLowerCase().includes(search))) searchHit[id] = true;
     tables.push({
-      id, title: table.title || 'Table',
+      id, title: '',
       x: mapSlots[i].x, y: mapSlots[i].y,
       r: /^sweetheart/i.test(table.title||'') ? FloorPlan.SWEET_POS.r : 14,
       count: seats.length, cap: tableCap(table), label: String(nums[i]||'')
@@ -868,6 +883,9 @@ function addSlot(){
   const free = FloorPlan.R_TABLES.find(p=>
     !mapSlots.some(s=>Math.hypot(s.x - p[0], s.y - p[1]) < 20));
   const pos = free ? { x:free[0], y:free[1] } : { x:500, y:466 };  // else dance floor
+  const used = new Set(mapSlots.map(s=>String(s.n)));
+  let n = 1; while(used.has(String(n))) n++;
+  pos.n = String(n);
   db.ref('mapSlots').set(mapSlots.concat([pos]));
   logActivity('<b>' + myName + '</b> added a table spot to the map');
 }
@@ -1172,8 +1190,7 @@ function wireEmptyMap(){
       updates['tablePos/' + id] = null;
       updates['binned/' + id] = true;
     });
-    updates['mapSlots'] = FloorPlan.R_TABLES.map(p=>({ x: p[0], y: p[1] }))
-      .concat([{ x: FloorPlan.SWEET_POS.x, y: FloorPlan.SWEET_POS.y }]);
+    updates['mapSlots'] = FIXED_SLOTS;
     db.ref().update(updates).then(()=>{
       logActivity('<b>' + myName + '</b> emptied the map — all groups to the bin, spots reset to the venue default');
     });
