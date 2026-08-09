@@ -245,6 +245,20 @@ function draw(opts){
   }
   gItems.textContent = '';
 
+  /* Empty numbered spots (assign view). Dashed circles, drop targets only. */
+  (opts.slots || []).forEach(function(s){
+    var g = el('g', {'class':'fp-slot', 'data-slot':s.i}, gItems);
+    el('circle', {cx:s.x, cy:s.y, r:14, 'class':'fp-slot-c'}, g);
+    txt(s.x, s.y + 3, s.label, 'fp-slot-n', 0, g);
+    g.addEventListener('dragover', function(e){ e.preventDefault(); g.classList.add('fp-dropping'); });
+    g.addEventListener('dragleave', function(){ g.classList.remove('fp-dropping'); });
+    g.addEventListener('drop', function(e){
+      e.preventDefault();
+      g.classList.remove('fp-dropping');
+      if(opts.onDropGroup) opts.onDropGroup(s.i);
+    });
+  });
+
   var flags = issues(opts.tables);
 
   opts.tables.forEach(function(t){
@@ -289,6 +303,7 @@ function wireTable(svg, g, hit, t, opts){
      The two never overlap — a guest drag sets dragGuestName, and we bail out
      of the pointer path while one is in flight. */
   hit.addEventListener('pointerdown', function(e){
+    if(opts.locked){ if(opts.onSelect) opts.onSelect(t.id); return; }
     if(opts.guestDragActive && opts.guestDragActive()) return;
     e.preventDefault();
     hit.setPointerCapture(e.pointerId);

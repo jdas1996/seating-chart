@@ -33,7 +33,11 @@ let guestExtras = {};      // guests added via RSVP uploads, synced in Firebase
 let tableMap = {};         // legacy sketch-canvas positions, 0–1 fractions. Kept as backup.
 let tablePos = {};         // floor-plan positions in SVG user units {id:{x,y}}
 let seededPos = false;     // only ever seed missing positions once per load
-let mapMode = false;
+let viewMode = 'list';     // 'list' | 'map' | 'assign'
+let mapSlots = [];         // frozen spot coordinates for the assign view
+let binned = {};           // groups pulled off the map into the assign bin
+let layoutLock = false;    // when true, positions and assignments are frozen
+let dragTableId = null;    // bin card being dragged in the assign view
 let presence = {};
 let dragGuestName = null;
 let localDragging = false;   // suppress re-renders while we drag, or the
@@ -170,6 +174,24 @@ function initRealtime(){
     render();
   });
 
+  db.ref('mapSlots').on('value', snap=>{
+    mapSlots = snap.val() || [];
+    render();
+  });
+
+  db.ref('binned').on('value', snap=>{
+    binned = snap.val() || {};
+    render();
+  });
+
+  db.ref('layoutLock').on('value', snap=>{
+    layoutLock = !!snap.val();
+    const btn = document.getElementById('lock-btn');
+    btn.textContent = layoutLock ? '🔒 Locked' : '🔓 Lock layout';
+    btn.classList.toggle('locked', layoutLock);
+    render();
+  });
+
   db.ref('activity').limitToLast(30).on('value', snap=>{
     const val = snap.val() || {};
     const items = Object.values(val).sort((a,b)=> (b.ts||0) - (a.ts||0));
@@ -230,7 +252,7 @@ function tableNumbers(){
   if(numberCache) return numberCache;
   const map = {};
   const placed = tableIdsSorted()
-    .filter(id=>tablePos[id])
+    .filter(id=>tablePos[id] && !binned[id])
     .map(id=>({ id, x:tablePos[id].x, y:tablePos[id].y }));
   FloorPlan.renumber(placed).forEach(r=>{ map[r.id] = Number(r.label); });
   let n = placed.length;
@@ -304,10 +326,20 @@ function render(){
   // (including empty ones) stay visible below as drop targets
   const wrap = document.getElementById('tables-wrap');
   const mapView = document.getElementById('map-view');
-  wrap.classList.toggle('hidden', mapMode);
-  mapView.classList.toggle('hidden', !mapMode);
-  if(mapMode){
+  wrap.classList.toggle('hidden', viewMode !== 'list');
+  mapView.classList.toggle('hidden', viewMode === 'list');
+  document.getElementById('pool-panel').classList.toggle('hidden', viewMode === 'assign');
+  document.getElementById('bin-panel').classList.toggle('hidden', viewMode !== 'assign');
+  if(viewMode === 'map'){
+    document.getElementById('map-hint').textContent =
+      'The real room, traced from the venue diagram. Drag a table to move it. Drop a guest name onto a table to seat them.';
     renderMap(search);
+  } else if(viewMode === 'assign'){
+    document.getElementById('map-hint').textContent = layoutLock
+      ? 'Layout is locked. Unlock to move groups.'
+      : 'Drag a table group from the bin onto a numbered spot. Click a placed group to send it back to the bin.';
+    renderAssign(search);
+    renderBin();
   } else {
     wrap.innerHTML = '';
     let ids = tableIdsSorted();
@@ -402,7 +434,7 @@ function makeTableEl(id, table, search){
 
   const numBadge = document.createElement('div');
   numBadge.className='table-num';
-  numBadge.textContent = tableNumber(id);
+  numBadge.textContent = binned[id] ? '—' : tableNumber(id);
   head.appendChild(numBadge);
 
   const titleInput = document.createElement('input');
@@ -564,7 +596,7 @@ function seedMissingPositions(ids){
 
 function renderMap(search){
   const svg = document.getElementById('fp-svg');
-  const ids = tableIdsSorted();
+  const ids = tableIdsSorted().filter(id=>!binned[id]);
   if(seedMissingPositions(ids)) return;   // listener will re-render once written
 
   const nums = tableNumbers();
@@ -590,8 +622,12 @@ function renderMap(search){
     svg: svg,
     tables: tables,
     searchHit: searchHit,
+    locked: layoutLock,
     guestDragActive: ()=>!!dragGuestName,
-    onMove: (id, x, y)=>{ db.ref('tablePos/' + id).set({ x:x, y:y }); },
+    onMove: (id, x, y)=>{
+      if(layoutLock){ render(); return; }
+      db.ref('tablePos/' + id).set({ x:x, y:y });
+    },
     onDropGuest: id=>{
       if(!dragGuestName) return;
       moveGuestToTable(dragGuestName, id, (state.tables[id] || {}).title);
@@ -608,11 +644,182 @@ function renderMap(search){
   clashEl.classList.toggle('on', flags.nClash > 0);
 }
 
-document.getElementById('map-toggle').addEventListener('click', ()=>{
-  mapMode = !mapMode;
-  document.getElementById('map-toggle').textContent = mapMode ? 'List view' : 'Map view';
+function setView(mode){
+  viewMode = viewMode === mode ? 'list' : mode;
+  document.getElementById('map-toggle').textContent = viewMode === 'map' ? 'List view' : 'Map view';
+  document.getElementById('assign-toggle').textContent = viewMode === 'assign' ? 'List view' : 'Assign tables';
   render();
+}
+document.getElementById('map-toggle').addEventListener('click', ()=>setView('map'));
+document.getElementById('assign-toggle').addEventListener('click', ()=>setView('assign'));
+
+document.getElementById('lock-btn').addEventListener('click', ()=>{
+  const msg = layoutLock
+    ? 'Unlock the layout so tables and assignments can move again?'
+    : 'Lock the layout? Table positions and number assignments will be frozen for everyone until unlocked.';
+  if(!confirm(msg)) return;
+  db.ref('layoutLock').set(!layoutLock);
+  logActivity('<b>' + myName + '</b> ' + (layoutLock ? 'unlocked' : 'locked') + ' the table layout');
 });
+
+/* ---------------- assign view: bin + numbered spots ---------------- */
+/* The frozen spots come from a one-time snapshot of the arranged map.
+   Numbers are derived from spot position with the same renumber() the map
+   uses, so a spot's number here always matches the map and the exports. */
+function seedSlotsIfNeeded(){
+  if(mapSlots.length) return true;
+  const placed = tableIdsSorted().filter(id=>tablePos[id] && !binned[id]);
+  if(!placed.length){
+    alert('Arrange your tables on the Map view first — those positions become the numbered spots.');
+    return false;
+  }
+  db.ref('mapSlots').set(placed.map(id=>({ x:tablePos[id].x, y:tablePos[id].y })));
+  return false;   // listener re-renders once written
+}
+
+function slotNumbers(){
+  const map = {};
+  FloorPlan.renumber(mapSlots.map((s,i)=>({ id:i, x:s.x, y:s.y })))
+    .forEach(r=>{ map[r.id] = r.label; });
+  return map;
+}
+
+function slotOccupants(){
+  const occ = {};   // slot index -> tableId
+  tableIdsSorted().forEach(id=>{
+    if(binned[id] || !tablePos[id]) return;
+    mapSlots.forEach((s,i)=>{
+      if(Math.abs(s.x - tablePos[id].x) < 3 && Math.abs(s.y - tablePos[id].y) < 3) occ[i] = id;
+    });
+  });
+  return occ;
+}
+
+function assignGroupToSlot(tableId, slotIdx){
+  if(layoutLock){ alert('The layout is locked. Unlock it first.'); return; }
+  const occ = slotOccupants();
+  if(occ[slotIdx] && occ[slotIdx] !== tableId){ alert('That spot is taken — clear it first.'); return; }
+  const s = mapSlots[slotIdx];
+  db.ref().update({
+    ['tablePos/' + tableId]: { x:s.x, y:s.y },
+    ['binned/' + tableId]: null
+  });
+  logActivity('<b>' + myName + '</b> assigned "' + ((state.tables[tableId]||{}).title||'a table') +
+              '" to table #' + slotNumbers()[slotIdx]);
+}
+
+function sendGroupToBin(tableId){
+  if(layoutLock){ alert('The layout is locked. Unlock it first.'); return; }
+  const t = state.tables[tableId] || {};
+  if(!confirm('Send "' + (t.title||'this table') + '" back to the bin?')) return;
+  db.ref().update({
+    ['tablePos/' + tableId]: null,
+    ['binned/' + tableId]: true
+  });
+  logActivity('<b>' + myName + '</b> moved "' + (t.title||'a table') + '" back to the bin');
+}
+
+function mealSummary(seats){
+  const c = {};
+  (seats||[]).forEach(n=>{
+    const m = guestByName(n).meal || '?';
+    c[m] = (c[m]||0) + 1;
+  });
+  return Object.entries(c).map(([m,n])=>n + ' ' + m).join(' · ');
+}
+
+function renderAssign(search){
+  const svg = document.getElementById('fp-svg');
+  if(!seedSlotsIfNeeded()) return;
+
+  const nums = slotNumbers();
+  const occ = slotOccupants();
+  const occupiedIds = new Set(Object.values(occ));
+  const searchHit = {};
+
+  // placed groups sit exactly on their spot and carry its number
+  const tables = [];
+  Object.entries(occ).forEach(([i, id])=>{
+    const table = state.tables[id];
+    if(!table) return;
+    const seats = table.seats || [];
+    if(search && seats.some(n=>n.toLowerCase().includes(search))) searchHit[id] = true;
+    tables.push({
+      id, title: table.title || 'Table',
+      x: mapSlots[i].x, y: mapSlots[i].y,
+      r: /^sweetheart/i.test(table.title||'') ? FloorPlan.SWEET_POS.r : 14,
+      count: seats.length, cap: state.seatSize, label: String(nums[i]||'')
+    });
+  });
+
+  const emptySlots = mapSlots
+    .map((s,i)=>({ i, x:s.x, y:s.y, label:String(nums[i]||'') }))
+    .filter(s=>!(s.i in occ));
+
+  FloorPlan.draw({
+    svg, tables, searchHit,
+    slots: emptySlots,
+    locked: layoutLock,
+    guestDragActive: ()=>!!dragGuestName || !!dragTableId,
+    onSelect: id=>sendGroupToBin(id),
+    onMove: (id, x, y)=>{
+      if(layoutLock){ render(); return; }
+      // snap to the nearest free spot; otherwise snap back where it was
+      let best = null, bd = 1e9;
+      emptySlots.forEach(s=>{
+        const d = Math.hypot(s.x - x, s.y - y);
+        if(d < bd){ bd = d; best = s; }
+      });
+      if(best && bd < 30) assignGroupToSlot(id, best.i);
+      else render();
+    },
+    onDropGroup: i=>{
+      if(dragTableId){ assignGroupToSlot(dragTableId, i); dragTableId = null; }
+    },
+    onDropGuest: id=>{
+      if(!dragGuestName) return;
+      moveGuestToTable(dragGuestName, id, (state.tables[id] || {}).title);
+      dragGuestName = null;
+    }
+  });
+
+  const clashEl = document.getElementById('fp-clash');
+  clashEl.querySelector('b').textContent = 0;
+  clashEl.classList.remove('on');
+}
+
+function renderBin(){
+  const zone = document.getElementById('bin-zone');
+  zone.innerHTML = '';
+  const occupiedIds = new Set(Object.values(slotOccupants()));
+  const binIds = tableIdsSorted().filter(id=>!occupiedIds.has(id));
+  document.getElementById('bin-count').textContent =
+    binIds.length ? binIds.length + ' group' + (binIds.length===1?'':'s') + ' to place' : 'All groups placed 🎉';
+
+  binIds.forEach(id=>{
+    const t = state.tables[id] || {};
+    const card = document.createElement('div');
+    card.className = 'bin-card';
+    card.draggable = !layoutLock;
+    const title = document.createElement('div');
+    title.className = 'bin-title';
+    title.textContent = t.title || 'Table';
+    const meta = document.createElement('div');
+    meta.className = 'bin-meta';
+    const seats = t.seats || [];
+    meta.textContent = seats.length + ' guests' + (seats.length ? ' — ' + mealSummary(seats) : '');
+    card.appendChild(title);
+    card.appendChild(meta);
+    card.addEventListener('dragstart', e=>{
+      dragTableId = id;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', id);
+      card.classList.add('dragging');
+    });
+    card.addEventListener('dragend', ()=>{ dragTableId = null; card.classList.remove('dragging'); });
+    zone.appendChild(card);
+  });
+}
 
 /* ---------------- group editor ---------------- */
 function openGroupEditor(name){
@@ -848,7 +1055,7 @@ function downloadMealCounts(){
     const total = (t.seats||[]).length;
     grand += total;
     cols.forEach(c=>totals[c]+=counts[c]);
-    const label = /head/i.test(t.title||'') ? 'Head Table' : tableNumber(id);
+    const label = binned[id] ? 'UNPLACED' : (/head/i.test(t.title||'') ? 'Head Table' : tableNumber(id));
     const comment = [(t.title||''), notes.join(' | ')].filter(Boolean).join(' — ');
     rows.push([label, ...cols.map(c=>counts[c]||''), total, comment]);
   });
@@ -889,7 +1096,7 @@ function downloadGuestLists(){
     rows1.push([
       g.name,
       g.meal || '',
-      tid ? (/head/i.test(state.tables[tid].title||'') ? 'Head' : tableNumber(tid)) : '—',
+      tid ? (binned[tid] ? '—' : (/head/i.test(state.tables[tid].title||'') ? 'Head' : tableNumber(tid))) : '—',
       tid ? (state.tables[tid].title || '') : 'Unassigned'
     ]);
   });

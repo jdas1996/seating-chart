@@ -372,3 +372,17 @@ button.ghost{ border-color:var(--line); color:var(--ink-soft); }
   margin-right:8px; flex-shrink:0;
 }
 .map-table-num{ font-size:16px; font-weight:600; color:var(--gold, #b8965a); line-height:1; }
+
+/* assign view */
+.fp-slot-c{ fill:#fdfaf3; stroke:#b7ad99; stroke-width:1.2; stroke-dasharray:4 3; }
+.fp-slot-n{ font-size:8px; fill:#9a917d; text-anchor:middle; font-family:Georgia,serif; }
+.fp-slot.fp-dropping .fp-slot-c{ fill:#eef4ea; stroke:#7a8c6c; stroke-width:2; }
+.bin-card{
+  background:#fff; border:1px solid var(--line); border-radius:10px;
+  padding:10px 12px; margin-bottom:8px; cursor:grab; user-select:none;
+  box-shadow:0 1px 4px rgba(0,0,0,.05);
+}
+.bin-card.dragging{ opacity:.5; }
+.bin-title{ font-size:14px; }
+.bin-meta{ font-size:11px; color:var(--ink-soft); margin-top:3px; line-height:1.4; }
+#lock-btn.locked{ background:#8a5c5c; color:#fff; border-color:#8a5c5c; }
