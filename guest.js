@@ -77,12 +77,6 @@ function show(e){
       mates.appendChild(row);
     });
 
-  var diets = document.getElementById('diets');
-  if(t.diets && t.diets.length){
-    diets.style.display = 'block';
-    diets.textContent = 'Dietary notes at this table: ' + t.diets.join(' · ');
-  } else diets.style.display = 'none';
-
   drawMap(t);
   document.getElementById('status').textContent = '';
 }
@@ -153,10 +147,6 @@ function drawCard(){
   var step = mates.length > 10 ? 38 : 44;
   if(mates.length > 10) c.font = '400 28px Georgia';
   mates.slice(0, 11).forEach(function(ln, ix){ c.fillText(ln, 540, 795 + ix * step); });
-  if(t.diets && t.diets.length){
-    c.fillStyle = '#8a5c2e'; c.font = '400 24px Georgia';
-    c.fillText('Dietary notes at this table: ' + t.diets.join(' · ').slice(0, 70), 540, 1215);
-  }
   c.fillStyle = '#8a8272'; c.font = '400 26px Georgia';
   c.fillText('Find yours:  ' + PAGE_URL.replace('https://', ''), 540, 1275);
   return cv;

@@ -1054,11 +1054,8 @@ async function publishGuestPage(){
   const tables = Object.entries(occ).map(([i, id])=>{
     const t = state.tables[id] || {};
     const seats = t.seats || [];
-    const diets = [];
-    seats.forEach(n=>{ const d = guestByName(n).diet;
-      if(d && !diets.includes(d)) diets.push(d); });
     return { n: String(nums[i] || ''), x: mapSlots[i].x, y: mapSlots[i].y,
-             title: t.title || '', seats, diets };
+             title: t.title || '', seats };
   });
   const unplaced = tableIdsSorted().filter(id=>!Object.values(occ).includes(id));
   const total = tables.reduce((s,t)=>s+t.seats.length, 0);
