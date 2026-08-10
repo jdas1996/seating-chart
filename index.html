@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reception Seating Chart</title>
-<link rel="stylesheet" href="style.css?v=44">
+<link rel="stylesheet" href="style.css?v=45">
 </head>
 <body>
 
@@ -51,6 +51,7 @@
     <button class="ghost" id="more-btn">More ▾</button>
     <div class="more-menu hidden" id="more-menu">
       <button id="auto-fill">Auto-fill empty seats</button>
+      <button class="ghost" id="rename-guest-btn">Rename a guest…</button>
       <button class="ghost" id="renumber-btn">Renumber by position…</button>
       <button class="ghost" id="backups-btn">Backups…</button>
       <div class="more-sep">Careful — these change a lot at once</div>
@@ -185,6 +186,24 @@
   </div>
 </div>
 
+<div id="rename-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <h3>Rename a guest</h3>
+    <p>For Zola spelling fixes and "Guest" placeholders getting real names.
+       The person keeps their seat, meal and group — and the next RSVP upload
+       will recognize the new name as the same person.</p>
+    <input type="text" id="rename-filter" placeholder="Type to filter names…"
+           style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;font-family:inherit">
+    <select id="rename-old" size="6" style="width:100%;border:1px solid var(--line);border-radius:8px;margin-bottom:10px;font-family:inherit;font-size:13px;padding:4px"></select>
+    <input type="text" id="rename-new" placeholder="New name (e.g. Melodia Miranda)"
+           style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:12px;font-family:inherit">
+    <div class="modal-actions">
+      <button class="ghost" id="rename-cancel">Cancel</button>
+      <button class="primary" id="rename-save">Rename</button>
+    </div>
+  </div>
+</div>
+
 <div id="ask-modal" class="modal-backdrop hidden" style="z-index:200">
   <div class="modal" style="width:380px">
     <div id="ask-msg" style="white-space:pre-wrap;font-size:14px;line-height:1.5;margin-bottom:14px"></div>
@@ -196,17 +215,17 @@
   </div>
 </div>
 
-<div class="version-note">v44</div>
+<div class="version-note">v45</div>
 
 <!-- Firebase (compat SDK — no build step needed) -->
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 
-<script src="firebase-config.js?v=44"></script>
-<script src="guests.js?v=44"></script>
-<script src="restore-snapshot.js?v=44"></script>
-<script src="floorplan.js?v=44"></script>
-<script src="app.js?v=44"></script>
+<script src="firebase-config.js?v=45"></script>
+<script src="guests.js?v=45"></script>
+<script src="restore-snapshot.js?v=45"></script>
+<script src="floorplan.js?v=45"></script>
+<script src="app.js?v=45"></script>
 </body>
 </html>

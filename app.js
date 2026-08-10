@@ -39,6 +39,7 @@ let mapSlots = [];         // frozen spot coordinates for the assign view
 let binned = {};           // groups pulled off the map into the assign bin
 let layoutLock = false;    // when true, positions and assignments are frozen
 let dragTableId = null;    // bin card being dragged in the assign view
+let renames = {};              // synced guest renames {nameKey(old): newName}
 let expandedBins = new Set();   // bin cards showing their full guest list
 
 /* Browser confirm/alert/prompt can be permanently muted by the browser's
@@ -157,11 +158,15 @@ const NAME_FIXES = {
   'Rhea Mathew': 'Rhea John',
   'Jerry Jeevan': 'Jerill Jeevan'
 };
+/* One rename step: the static fixes plus the synced rename map. */
+function renamedTo(name){
+  return NAME_FIXES[name] || renames[nameKey(name)] || null;
+}
 function applyNameFixes(){
   Object.entries(state.tables).forEach(([id, t])=>{
-    if((t.seats || []).some(n=>NAME_FIXES[n])){
+    if((t.seats || []).some(n=>renamedTo(n))){
       db.ref('seatingChart/tables/' + id + '/seats').transaction(seats=>{
-        return (seats || []).map(n=>NAME_FIXES[n] || n);
+        return (seats || []).map(n=>renamedTo(n) || n);
       });
     }
   });
@@ -202,6 +207,12 @@ function initRealtime(){
 
   db.ref('groupOverrides').on('value', snap=>{
     groupOverrides = snap.val() || {};
+    render();
+  });
+
+  db.ref('renames').on('value', snap=>{
+    renames = snap.val() || {};
+    applyNameFixes();   // seats pick up new names immediately
     render();
   });
 
@@ -298,6 +309,8 @@ function rosterGuests(){
   const seen = new Set();
   const out = [];
   GUESTS.concat(Object.values(guestExtras)).forEach(g=>{
+    const nn = renamedTo(g.name);
+    if(nn) g = Object.assign({}, g, { name: nn });   // renamed: keep meal/group/diet
     const k = normName(g.name);
     if(!seen.has(k)){ seen.add(k); out.push(g); }
   });
@@ -1034,6 +1047,51 @@ async function renumberByPosition(){
   logActivity('<b>' + myName + '</b> renumbered all tables starting from the entrance');
 }
 
+/* ---------------- rename guest (survives Zola re-imports) ---------------- */
+function openRenameDialog(){
+  const modal = document.getElementById('rename-modal');
+  const sel = document.getElementById('rename-old');
+  const filt = document.getElementById('rename-filter');
+  const fill = ()=>{
+    const q = filt.value.trim().toLowerCase();
+    sel.innerHTML = '';
+    rosterGuests().map(g=>g.name)
+      .sort((a,b)=>normName(a).localeCompare(normName(b)))
+      .filter(n=>!q || n.toLowerCase().includes(q))
+      .forEach(n=>{
+        const o = document.createElement('option');
+        o.value = n; o.textContent = n;
+        sel.appendChild(o);
+      });
+  };
+  fill();
+  filt.oninput = fill;
+  document.getElementById('rename-new').value = '';
+  modal.classList.remove('hidden');
+  document.getElementById('rename-cancel').onclick = ()=>modal.classList.add('hidden');
+  document.getElementById('rename-save').onclick = async ()=>{
+    const oldName = sel.value;
+    const newName = document.getElementById('rename-new').value.trim();
+    if(!oldName || !newName || oldName === newName) return;
+    if(rosterGuests().some(g=>normName(g.name) === normName(newName))){
+      uiAlert('"' + newName + '" is already on the guest list — that would merge two people, not rename one.');
+      return;
+    }
+    const updates = {};
+    /* collapse chains: anything already renamed TO oldName now goes to newName */
+    Object.entries(renames).forEach(([k, v])=>{
+      if(v === oldName) updates['renames/' + k] = newName;
+    });
+    updates['renames/' + nameKey(oldName)] = newName;
+    /* the group tag travels with the person */
+    if(groupOverrides[nameKey(oldName)] !== undefined)
+      updates['groupOverrides/' + nameKey(newName)] = groupOverrides[nameKey(oldName)];
+    await db.ref().update(updates);
+    logActivity('<b>' + myName + '</b> renamed <b>' + oldName + '</b> to <b>' + newName + '</b> (seat kept)');
+    modal.classList.add('hidden');
+  };
+}
+
 async function resetFurniture(){
   if(layoutLock){ uiAlert('The layout is locked. Unlock it first.'); return; }
   if(!(await uiConfirm('Put the Cake, D.J., Gifts, Photo Booth, Welcome and Seating Chart tables back to their planned spots?'))) return;
@@ -1447,6 +1505,7 @@ function wireToolbar(){
   document.getElementById('add-slot-btn').addEventListener('click', addSlot);
   document.getElementById('reset-furn-btn').addEventListener('click', resetFurniture);
   document.getElementById('renumber-btn').addEventListener('click', renumberByPosition);
+  document.getElementById('rename-guest-btn').addEventListener('click', openRenameDialog);
 
   document.getElementById('reset-btn').addEventListener('click', async ()=>{
     if(!(await uiConfirm("This clears every table's seats and moves everyone back to Unassigned. Table names stay. Continue?"))) return;
