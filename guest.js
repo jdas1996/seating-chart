@@ -68,7 +68,8 @@ function show(e){
 
   var mates = document.getElementById('mates');
   mates.textContent = '';
-  (t.seats || []).slice().sort(function(a, b){ return strip(a).localeCompare(strip(b)); })
+  var lastKey = function(n){ var p = strip(n).split(/\s+/); return (p[p.length-1] + ' ' + p.join(' ')).toLowerCase(); };
+  (t.seats || []).slice().sort(function(a, b){ return lastKey(a).localeCompare(lastKey(b)); })
     .forEach(function(n){
       var row = document.createElement('div');
       if(n === e.name){ var b = document.createElement('b'); b.textContent = strip(n) + ' (you)'; row.appendChild(b); }
@@ -132,7 +133,7 @@ function drawCard(){
   c.strokeStyle = '#b8965a'; c.lineWidth = 6;
   c.strokeRect(40, 40, 1000, 1270);
   c.textAlign = 'center'; c.fillStyle = '#3d3830';
-  c.font = '400 58px Georgia'; c.fillText('Christal & Yesudasan', 540, 170);
+  c.font = '400 58px Georgia'; c.fillText('The Yesudasans', 540, 170);
   c.font = '400 30px Georgia'; c.fillStyle = '#8a8272';
   c.fillText('R E C E P T I O N   ·   A U G U S T   2 2,   2 0 2 6', 540, 225);
   c.fillStyle = '#3d3830'; c.font = '400 44px Georgia';
@@ -146,11 +147,12 @@ function drawCard(){
   c.fillStyle = '#8a8272'; c.font = '400 26px Georgia';
   c.fillText('S I T T I N G   W I T H', 540, 740);
   c.fillStyle = '#3d3830'; c.font = '400 32px Georgia';
-  var mates = (t.seats || []).filter(function(n){ return n !== current.name; }).map(strip);
-  var lines = [];
-  for(var i = 0; i < mates.length; i += 2)
-    lines.push(mates.slice(i, i + 2).join('   ·   '));
-  lines.slice(0, 8).forEach(function(ln, ix){ c.fillText(ln, 540, 800 + ix * 48); });
+  var lastKey2 = function(n){ var p = strip(n).split(/\s+/); return (p[p.length-1] + ' ' + p.join(' ')).toLowerCase(); };
+  var mates = (t.seats || []).filter(function(n){ return n !== current.name; })
+    .sort(function(a, b){ return lastKey2(a).localeCompare(lastKey2(b)); }).map(strip);
+  var step = mates.length > 10 ? 38 : 44;
+  if(mates.length > 10) c.font = '400 28px Georgia';
+  mates.slice(0, 11).forEach(function(ln, ix){ c.fillText(ln, 540, 795 + ix * step); });
   if(t.diets && t.diets.length){
     c.fillStyle = '#8a5c2e'; c.font = '400 24px Georgia';
     c.fillText('Dietary notes at this table: ' + t.diets.join(' · ').slice(0, 70), 540, 1215);
