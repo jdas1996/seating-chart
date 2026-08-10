@@ -1047,6 +1047,34 @@ async function renumberByPosition(){
   logActivity('<b>' + myName + '</b> renumbered all tables starting from the entrance');
 }
 
+/* ---------------- publish snapshot for the guest page ---------------- */
+async function publishGuestPage(){
+  const occ = slotOccupants();
+  const nums = slotNumbers();
+  const tables = Object.entries(occ).map(([i, id])=>{
+    const t = state.tables[id] || {};
+    const seats = t.seats || [];
+    const diets = [];
+    seats.forEach(n=>{ const d = guestByName(n).diet;
+      if(d && !diets.includes(d)) diets.push(d); });
+    return { n: String(nums[i] || ''), x: mapSlots[i].x, y: mapSlots[i].y,
+             title: t.title || '', seats, diets };
+  });
+  const unplaced = tableIdsSorted().filter(id=>!Object.values(occ).includes(id));
+  const total = tables.reduce((s,t)=>s+t.seats.length, 0);
+  let msg = 'Publish the current seating to the guest page?\n\n' +
+    tables.length + ' tables, ' + total + ' guests become searchable at\n' +
+    'jdas1996.github.io/seating-chart/\n\n' +
+    'Guests see names and table numbers only — no meals, no editing.';
+  if(unplaced.length) msg += '\n\n⚠ ' + unplaced.length + ' group(s) are not on the map and will NOT be published.';
+  if(!(await uiConfirm(msg))) return;
+  await db.ref('published').set({
+    at: firebase.database.ServerValue.TIMESTAMP, by: myName, tables
+  });
+  logActivity('<b>' + myName + '</b> published the seating to the guest page (' + total + ' guests)');
+  uiAlert('Published! Guests can now search their name at:\njdas1996.github.io/seating-chart/');
+}
+
 /* ---------------- rename guest (survives Zola re-imports) ---------------- */
 function openRenameDialog(){
   const modal = document.getElementById('rename-modal');
@@ -1506,6 +1534,7 @@ function wireToolbar(){
   document.getElementById('reset-furn-btn').addEventListener('click', resetFurniture);
   document.getElementById('renumber-btn').addEventListener('click', renumberByPosition);
   document.getElementById('rename-guest-btn').addEventListener('click', openRenameDialog);
+  document.getElementById('publish-btn').addEventListener('click', publishGuestPage);
 
   document.getElementById('reset-btn').addEventListener('click', async ()=>{
     if(!(await uiConfirm("This clears every table's seats and moves everyone back to Unassigned. Table names stay. Continue?"))) return;

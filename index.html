@@ -3,229 +3,122 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Reception Seating Chart</title>
-<link rel="stylesheet" href="style.css?v=45">
+<meta name="robots" content="noindex, nofollow">
+<title>Find Your Table — Christal &amp; Yesudasan</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='11' fill='none' stroke='%23b8965a' stroke-width='3'/></svg>">
+<style>
+  :root{ --cream:#faf6ef; --line:#e5ddcd; --ink:#3d3830; --ink-soft:#8a8272; --gold:#b8965a; }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; font-family:Georgia,'Times New Roman',serif; background:var(--cream);
+    color:var(--ink); min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    padding:28px 16px 60px;
+  }
+  .head{ text-align:center; margin-bottom:22px; }
+  .head h1{ font-weight:400; font-size:26px; margin:0 0 4px; letter-spacing:.5px; }
+  .head .date{ font-size:13px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:2px; }
+  .head .sub{ font-size:15px; color:var(--ink-soft); margin-top:14px; }
+  .card{
+    background:#fff; border:1px solid var(--line); border-radius:16px;
+    padding:22px; width:100%; max-width:480px; box-shadow:0 6px 30px rgba(0,0,0,.06);
+  }
+  #q{
+    width:100%; font:inherit; font-size:17px; padding:13px 16px;
+    border:1.5px solid var(--line); border-radius:12px; background:var(--cream);
+  }
+  #q:focus{ outline:none; border-color:var(--gold); }
+  #matches{ margin-top:8px; }
+  .match{
+    padding:11px 14px; border-bottom:1px solid var(--line); cursor:pointer; font-size:16px;
+    border-radius:8px;
+  }
+  .match:hover{ background:var(--cream); }
+  #result{ display:none; text-align:center; }
+  .table-big{
+    font-size:15px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:2px; margin-top:6px;
+  }
+  .table-num{
+    font-size:74px; line-height:1.1; color:var(--gold); font-weight:700; margin:2px 0 2px;
+  }
+  .guest-name{ font-size:19px; margin-bottom:2px; }
+  .mates-head{
+    font-size:12px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:1.5px;
+    margin:18px 0 8px; border-top:1px solid var(--line); padding-top:14px;
+  }
+  #mates{ font-size:15px; line-height:1.8; }
+  #mates b{ color:var(--gold); }
+  #diets{ font-size:13px; color:#8a5c2e; background:#fdf3e4; border:1px solid #e8d5b5;
+    border-radius:10px; padding:8px 12px; margin-top:14px; display:none; line-height:1.5; }
+  .map-wrap{ margin-top:18px; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#fff; }
+  #fp-svg{ display:block; width:100%; height:auto; }
+  .btns{ display:flex; gap:10px; margin-top:18px; justify-content:center; }
+  button{
+    font:inherit; font-size:15px; padding:11px 22px; border-radius:12px; cursor:pointer;
+    border:1.5px solid var(--gold);
+  }
+  #share{ background:var(--gold); color:#fff; }
+  #back, #copy{ background:#fff; color:var(--gold); }
+  #status{ font-size:12px; color:var(--ink-soft); margin-top:10px; min-height:16px; }
+  .loading{ color:var(--ink-soft); font-size:14px; text-align:center; padding:20px 0; }
+
+  /* floor plan styles (subset of the planner's) */
+  .fp-roomfill{ fill:#fdfcf9; } .fp-foyerfill{ fill:#f7f5ef; }
+  .fp-wall{ fill:none; stroke:#2a2722; stroke-width:2.2; stroke-linejoin:round; }
+  .fp-wall-thin{ fill:none; stroke:#6a6459; stroke-width:1; }
+  .fp-divider{ stroke:#b3ada1; stroke-width:1; stroke-dasharray:6 4; }
+  .fp-door-leaf{ fill:none; stroke:#2a2722; stroke-width:1.6; }
+  .fp-door-arc{ fill:none; stroke:#6a6459; stroke-width:.9; }
+  .fp-lbl,.fp-lbl-sm{ font:600 7px sans-serif; fill:#5a554c; text-anchor:middle; dominant-baseline:middle; }
+  .fp-zone{ font:700 11px sans-serif; fill:#a49c8c; text-anchor:middle; letter-spacing:.06em; }
+  .fp-furn{ fill:#efece4; stroke:#7d7669; stroke-width:1.3; }
+  .fp-fixed{ fill:#e2ded4; stroke:#8b8478; }
+  .fp-cock{ fill:#f4f1e8; stroke:#8a8375; stroke-width:1.2; }
+  .fp-tbl{ fill:#e8f1ef; stroke:#2f6f6b; stroke-width:1.4; }
+  .fp-num{ font:700 11px sans-serif; fill:#1d4a47; text-anchor:middle; dominant-baseline:middle; }
+  .fp-seats,.fp-title,.fp-badge,.fp-badge-t{ display:none; }
+  .fp-hitarea{ fill:transparent; }
+  .gp-dim{ fill:#3d3830; fill-opacity:.55; }
+  .gp-target .fp-tbl{ fill:#fdf3d0; stroke:var(--gold); stroke-width:3; }
+  .gp-target .fp-num{ font-size:15px; fill:#8a6d3b; }
+  .gp-ring{ fill:none; stroke:var(--gold); stroke-width:2.5; stroke-dasharray:5 4; }
+</style>
 </head>
 <body>
 
-<div id="name-gate" class="name-gate">
-  <div class="name-card">
-    <h2>Who's joining?</h2>
-    <p>This lets your partner see who's editing what, live.</p>
-    <input type="text" id="name-input" placeholder="Your first name" maxlength="20">
-    <button id="name-submit" class="primary">Start planning</button>
+<div class="head">
+  <h1>Christal &amp; Yesudasan</h1>
+  <div class="date">Reception · August 22, 2026</div>
+  <div class="sub">Find your table</div>
+</div>
+
+<div class="card">
+  <div id="searcher">
+    <input type="text" id="q" placeholder="Type your name…" autocomplete="off" autofocus>
+    <div id="matches"></div>
+    <div class="loading" id="loading">Loading the seating chart…</div>
+  </div>
+
+  <div id="result">
+    <div class="guest-name" id="r-name"></div>
+    <div class="table-big" id="r-label">You're at table</div>
+    <div class="table-num" id="r-num"></div>
+    <div class="mates-head">You're sitting with</div>
+    <div id="mates"></div>
+    <div id="diets"></div>
+    <div class="map-wrap"><svg id="fp-svg" viewBox="8 300 1090 372"></svg></div>
+    <div class="btns">
+      <button id="share">Share</button>
+      <button id="copy">Copy as text</button>
+      <button id="back">← Search again</button>
+    </div>
+    <div id="status"></div>
   </div>
 </div>
 
-<div class="topbar">
-  <div>
-    <h1>Reception Seating Chart</h1>
-    <div class="sub">Drag guests between the pool and tables — synced live</div>
-  </div>
-  <div class="stats">
-    <div><b id="stat-seated">0</b>seated</div>
-    <div><b id="stat-unseated">0</b>unseated</div>
-    <div><b id="stat-tables">0</b>tables</div>
-  </div>
-</div>
-
-<div class="presence-bar" id="presence-bar">
-  <span class="presence-label">Online:</span>
-  <div id="presence-list" class="presence-list"></div>
-  <span id="connection-status" class="connection-status">connecting…</span>
-</div>
-
-<div class="toolbar">
-  <button class="primary" id="add-table">+ Add table</button>
-  <span class="tb-label">Seats per table:</span>
-  <input type="number" id="seat-size" value="10" min="2" max="20">
-  <button class="ghost" id="map-toggle">Map view</button>
-  <button class="ghost" id="assign-toggle">Assign tables</button>
-  <button class="ghost" id="lock-btn">🔓 Lock layout</button>
-  <button class="ghost" id="rsvp-upload-btn">Upload RSVP export…</button>
-  <button class="ghost" id="meal-count-btn">Download meal counts</button>
-  <button class="ghost" id="guest-list-btn">Download lists</button>
-  <button id="save-btn">💾 Save</button>
-  <button id="undo-btn" disabled>↩ Undo</button>
-  <span class="more-wrap">
-    <button class="ghost" id="more-btn">More ▾</button>
-    <div class="more-menu hidden" id="more-menu">
-      <button id="auto-fill">Auto-fill empty seats</button>
-      <button class="ghost" id="rename-guest-btn">Rename a guest…</button>
-      <button class="ghost" id="renumber-btn">Renumber by position…</button>
-      <button class="ghost" id="backups-btn">Backups…</button>
-      <div class="more-sep">Careful — these change a lot at once</div>
-      <button class="ghost" id="reset-btn">Reset to unassigned</button>
-      <button class="ghost" id="restore-snap">Restore Aug 9 snapshot</button>
-      <button class="ghost" id="empty-map">Empty the map…</button>
-      <button class="ghost" id="import-btn">Import old layout…</button>
-    </div>
-  </span>
-  <input type="file" id="rsvp-file" accept=".xlsx,.xls,.csv" style="display:none">
-  <span class="save-note" id="save-note">Synced</span>
-</div>
-
-<div class="layout">
-  <div class="pool" id="pool-panel">
-    <h2>Unassigned Guests</h2>
-    <div class="count" id="pool-count">0 guests</div>
-    <input type="text" id="search" placeholder="Search a name…">
-    <div id="group-filter" class="group-filter hidden"></div>
-    <div id="pool-zone"></div>
-    <div class="meal-key">
-      <div>🏷 meal tags shown next to each name</div>
-      <div style="margin-top:6px;">Drag a name onto any table to seat them.<br>Drag back here to unseat.</div>
-    </div>
-  </div>
-
-  <div class="pool hidden" id="bin-panel">
-    <h2>Table Groups Bin</h2>
-    <div class="count" id="bin-count"></div>
-    <input type="text" id="bin-search" placeholder="Search a guest to find their group…">
-    <div id="bin-zone"></div>
-    <div class="meal-key">
-      <div>Drag a group onto a numbered spot to assign it that table number.</div>
-      <div style="margin-top:6px;">To move a placed group: click its table on the map, then
-        "Remove from map (keeps group)" — it comes back here to re-place.</div>
-    </div>
-  </div>
-
-  <div id="tables-col">
-    <input type="text" id="table-search" placeholder="Search table groups by name…">
-    <div class="tables-wrap" id="tables-wrap"></div>
-  </div>
-  <div class="map-view hidden" id="map-view">
-    <div class="map-hint" id="map-hint">The real room, traced from the venue diagram. Drag a table to move it. Drop a guest name onto a table to seat them.</div>
-    <div class="fp-warnbar">
-      <span id="fp-clash">Too close <b>0</b></span>
-      <button class="ghost hidden" id="add-slot-btn">+ Add table spot</button>
-      <button class="ghost" id="reset-furn-btn">Reset furniture</button>
-      <span class="fp-note">Numbers are fixed to the venue floor plan — a spot keeps its number wherever it sits.</span>
-    </div>
-    <div id="map-canvas" class="map-canvas">
-      <svg id="fp-svg" class="fp-svg"></svg>
-    </div>
-  </div>
-</div>
-
-<div class="activity-drawer" id="activity-drawer">
-  <div class="activity-head" id="activity-toggle">
-    <span>Recent activity</span>
-    <span id="activity-caret">▾</span>
-  </div>
-  <div class="activity-list" id="activity-list"></div>
-</div>
-
-<div id="import-modal" class="modal-backdrop hidden">
-  <div class="modal">
-    <h3>Import an old layout</h3>
-    <p>Paste the JSON you copied from the old single-device version. This only works while the board is empty — it won't overwrite anyone's current work.</p>
-    <textarea id="import-text" rows="8" placeholder='{"seatSize":10,"tables":[...]}'></textarea>
-    <div class="modal-actions">
-      <button class="ghost" id="import-cancel">Cancel</button>
-      <button class="primary" id="import-confirm">Import</button>
-    </div>
-  </div>
-</div>
-
-<div id="group-modal" class="modal-backdrop hidden">
-  <div class="modal">
-    <h3>Edit group</h3>
-    <p>Change the group for <b id="group-guest-name"></b>. This syncs for both of you.</p>
-    <select id="group-select"></select>
-    <input type="text" id="group-new" placeholder="…or type a new group name">
-    <div class="modal-actions">
-      <button class="ghost" id="group-cancel">Cancel</button>
-      <button class="primary" id="group-save">Save</button>
-    </div>
-  </div>
-</div>
-
-<div id="table-modal" class="modal-backdrop hidden">
-  <div class="modal table-detail">
-    <div class="td-head">
-      <input type="text" id="td-number" class="td-num-edit" title="Table number — click to change">
-      <input type="text" id="td-title" class="table-title">
-      <input type="number" id="td-cap" class="table-cap" min="8" max="12" title="Seats (8–12)">
-      <button class="ghost" id="td-close">Close</button>
-    </div>
-    <div id="td-guests" class="td-guests"></div>
-    <div id="td-meals" class="td-meals"></div>
-    <div id="td-allergies"></div>
-    <div class="modal-actions">
-      <button class="ghost danger" id="td-delete">Delete table</button>
-    </div>
-  </div>
-</div>
-
-<div id="spot-modal" class="modal-backdrop hidden">
-  <div class="modal">
-    <h3>Empty table <span id="spot-num"></span></h3>
-    <p>Assign a table group to this spot, or drag its dashed circle on the map to move the spot itself.</p>
-    <div class="row" style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-      <label style="font-size:12px;color:#6f6a61">Table number</label>
-      <input type="text" id="spot-n" class="td-num-edit" style="width:60px">
-    </div>
-    <select id="spot-group"></select>
-    <div class="modal-actions">
-      <button class="ghost danger" id="spot-delete">Delete spot</button>
-      <span style="flex:1"></span>
-      <button class="ghost" id="spot-close">Close</button>
-      <button class="primary" id="spot-assign">Assign group</button>
-    </div>
-  </div>
-</div>
-
-<div id="backup-modal" class="modal-backdrop hidden">
-  <div class="modal">
-    <h3>Backups</h3>
-    <p>Every save (and every auto-backup taken before a risky button) is listed newest first.
-       Restoring replaces the current seating — Undo can bring it back.</p>
-    <div id="backup-list" class="backup-list"></div>
-    <div class="modal-actions"><button class="ghost" id="backup-close">Close</button></div>
-  </div>
-</div>
-
-<div id="rename-modal" class="modal-backdrop hidden">
-  <div class="modal">
-    <h3>Rename a guest</h3>
-    <p>For Zola spelling fixes and "Guest" placeholders getting real names.
-       The person keeps their seat, meal and group — and the next RSVP upload
-       will recognize the new name as the same person.</p>
-    <input type="text" id="rename-filter" placeholder="Type to filter names…"
-           style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;font-family:inherit">
-    <select id="rename-old" size="6" style="width:100%;border:1px solid var(--line);border-radius:8px;margin-bottom:10px;font-family:inherit;font-size:13px;padding:4px"></select>
-    <input type="text" id="rename-new" placeholder="New name (e.g. Melodia Miranda)"
-           style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:12px;font-family:inherit">
-    <div class="modal-actions">
-      <button class="ghost" id="rename-cancel">Cancel</button>
-      <button class="primary" id="rename-save">Rename</button>
-    </div>
-  </div>
-</div>
-
-<div id="ask-modal" class="modal-backdrop hidden" style="z-index:200">
-  <div class="modal" style="width:380px">
-    <div id="ask-msg" style="white-space:pre-wrap;font-size:14px;line-height:1.5;margin-bottom:14px"></div>
-    <input type="text" id="ask-input" class="hidden" style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:12px;font-family:inherit">
-    <div class="modal-actions">
-      <button class="ghost" id="ask-cancel">Cancel</button>
-      <button class="primary" id="ask-ok">OK</button>
-    </div>
-  </div>
-</div>
-
-<div class="version-note">v45</div>
-
-<!-- Firebase (compat SDK — no build step needed) -->
-<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
-
-<script src="firebase-config.js?v=45"></script>
-<script src="guests.js?v=45"></script>
-<script src="restore-snapshot.js?v=45"></script>
-<script src="floorplan.js?v=45"></script>
-<script src="app.js?v=45"></script>
+<script src="firebase-config.js"></script>
+<script src="floorplan.js"></script>
+<script src="guest.js"></script>
 </body>
 </html>
