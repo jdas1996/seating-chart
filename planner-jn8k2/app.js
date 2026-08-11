@@ -1532,6 +1532,7 @@ function wireToolbar(){
   document.getElementById('renumber-btn').addEventListener('click', renumberByPosition);
   document.getElementById('rename-guest-btn').addEventListener('click', openRenameDialog);
   document.getElementById('publish-btn').addEventListener('click', publishGuestPage);
+  document.getElementById('map-image-btn').addEventListener('click', downloadMapImage);
 
   document.getElementById('reset-btn').addEventListener('click', async ()=>{
     if(!(await uiConfirm("This clears every table's seats and moves everyone back to Unassigned. Table names stay. Continue?"))) return;
@@ -1669,6 +1670,77 @@ function wireRsvpUpload(){
     };
     reader.readAsArrayBuffer(file);
   });
+}
+
+/* ---------------- numbered floorplan image export ---------------- */
+/* The venue wants the meal sheet "with numbered floorplan". Renders the live
+   map (every slot with its real number, SH included, furniture in place) in
+   the clean guest style — numbers only, no seats/titles — and downloads a
+   high-res PNG. Styles are embedded in the SVG because a serialized SVG
+   loses the page's stylesheet. */
+const MAP_IMG_CSS =
+  '.fp-roomfill{fill:#fdfcf9}.fp-foyerfill{fill:#f7f5ef}' +
+  '.fp-wall{fill:none;stroke:#2a2722;stroke-width:2.2;stroke-linejoin:round}' +
+  '.fp-wall-thin{fill:none;stroke:#6a6459;stroke-width:1}' +
+  '.fp-divider{stroke:#b3ada1;stroke-width:1;stroke-dasharray:6 4}' +
+  '.fp-door-leaf{fill:none;stroke:#2a2722;stroke-width:1.6}' +
+  '.fp-door-arc{fill:none;stroke:#6a6459;stroke-width:.9}' +
+  '.fp-lbl,.fp-lbl-sm{font:600 7px sans-serif;fill:#5a554c;text-anchor:middle;dominant-baseline:middle}' +
+  '.fp-zone{font:700 11px sans-serif;fill:#a49c8c;text-anchor:middle;letter-spacing:.06em}' +
+  '.fp-furn{fill:#efece4;stroke:#7d7669;stroke-width:1.3}' +
+  '.fp-fixed{fill:#e2ded4;stroke:#8b8478}' +
+  '.fp-cock{fill:#f4f1e8;stroke:#8a8375;stroke-width:1.2}' +
+  '.fp-tbl{fill:#e8f1ef;stroke:#2f6f6b;stroke-width:1.4}' +
+  '.fp-num{font:700 12px sans-serif;fill:#1d4a47;text-anchor:middle;dominant-baseline:middle}' +
+  '.fp-seats,.fp-title,.fp-badge,.fp-badge-t,.fp-slot-plus{display:none}' +
+  '.fp-hitarea{fill:transparent}';
+
+function downloadMapImage(){
+  if(!mapSlots.length){ uiAlert('No numbered spots yet — arrange the map first.'); return; }
+  const nums = slotNumbers();
+  const tables = mapSlots.map((s, i)=>{
+    const n = String(nums[i] || '');
+    return { id: 'n' + n, title: '', x: s.x, y: s.y,
+             r: n.toUpperCase() === 'SH' ? 11 : 14,
+             count: 0, cap: 0, label: n };
+  });
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(SVGNS, 'svg');
+  FloorPlan.draw({ svg: svg, tables: tables, furniturePos: furniPos, locked: true });
+  const styleEl = document.createElementNS(SVGNS, 'style');
+  styleEl.textContent = MAP_IMG_CSS;
+  svg.insertBefore(styleEl, svg.firstChild);
+  svg.setAttribute('xmlns', SVGNS);
+
+  const VB = { x: 8, y: 300, w: 1090, h: 372 };
+  const SCALE = 3, PAD = 18 * SCALE, HEAD = 34 * SCALE;
+  const W = VB.w * SCALE + PAD * 2, H = VB.h * SCALE + PAD + HEAD + 8 * SCALE;
+  svg.setAttribute('width', VB.w * SCALE);
+  svg.setAttribute('height', VB.h * SCALE);
+
+  const xml = new XMLSerializer().serializeToString(svg);
+  const img = new Image();
+  img.onload = ()=>{
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#3d3830';
+    ctx.font = '700 ' + 16 * SCALE + 'px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Christal / Yesudasan — North 3/4 Ballroom — Aug 22, 2026', W / 2, HEAD - 8 * SCALE);
+    ctx.drawImage(img, PAD, HEAD, VB.w * SCALE, VB.h * SCALE);
+    canvas.toBlob(blob=>{
+      if(!blob){ uiAlert('Could not build the image — tell Joncy.'); return; }
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'Reception_Floorplan_Numbered.png';
+      a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
+    }, 'image/png');
+  };
+  img.onerror = ()=>uiAlert('Could not render the map image — tell Joncy.');
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
 }
 
 /* ---------------- venue meal count export ---------------- */
