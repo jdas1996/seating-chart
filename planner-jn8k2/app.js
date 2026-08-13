@@ -1098,7 +1098,10 @@ function openRenameDialog(){
     const oldName = sel.value;
     const newName = document.getElementById('rename-new').value.trim();
     if(!oldName || !newName || oldName === newName) return;
-    if(rosterGuests().some(g=>normName(g.name) === normName(newName))){
+    /* same normName as the person being renamed is fine — that's a title/spelling
+       fix, not a merge (normName strips Mr/Mrs/etc, so they often collide) */
+    if(rosterGuests().some(g=>normName(g.name) === normName(newName) &&
+                              normName(g.name) !== normName(oldName))){
       uiAlert('"' + newName + '" is already on the guest list — that would merge two people, not rename one.');
       return;
     }
@@ -1115,6 +1118,35 @@ function openRenameDialog(){
     logActivity('<b>' + myName + '</b> renamed <b>' + oldName + '</b> to <b>' + newName + '</b> (seat kept)');
     modal.classList.add('hidden');
   };
+}
+
+/* Bulk cleanup: drop Mr./Mrs./Ms. from every roster name (Dr., Pastor and
+   Rev. stay). Uses the same renames mechanism as the dialog, so seats, meals
+   and groups travel with the person and RSVP re-uploads still match. */
+async function stripTitlePrefixes(){
+  const PREFIX = /^(Mr|Mrs|Ms)\.?\s+/i;
+  const pairs = [];
+  rosterGuests().forEach(g=>{
+    if(!PREFIX.test(g.name)) return;
+    const stripped = g.name.replace(PREFIX, '').trim();
+    if(stripped && stripped !== g.name) pairs.push([g.name, stripped]);
+  });
+  if(!pairs.length){ uiAlert('Nobody on the list has a Mr./Mrs./Ms. prefix.'); return; }
+  const msg = 'Remove the prefix from ' + pairs.length + ' guest(s)?\n\n' +
+    pairs.map(p=>'• ' + p[0] + ' → ' + p[1]).join('\n') +
+    '\n\nSeats, meals and groups stay with each person.';
+  if(!(await uiConfirm(msg))) return;
+  const updates = {};
+  pairs.forEach(([oldName, newName])=>{
+    Object.entries(renames).forEach(([k, v])=>{
+      if(v === oldName) updates['renames/' + k] = newName;
+    });
+    updates['renames/' + nameKey(oldName)] = newName;
+    if(groupOverrides[nameKey(oldName)] !== undefined)
+      updates['groupOverrides/' + nameKey(newName)] = groupOverrides[nameKey(oldName)];
+  });
+  await db.ref().update(updates);
+  logActivity('<b>' + myName + '</b> removed Mr./Mrs. prefixes from ' + pairs.length + ' guests');
 }
 
 async function resetFurniture(){
@@ -1533,6 +1565,7 @@ function wireToolbar(){
   document.getElementById('rename-guest-btn').addEventListener('click', openRenameDialog);
   document.getElementById('publish-btn').addEventListener('click', publishGuestPage);
   document.getElementById('map-image-btn').addEventListener('click', downloadMapImage);
+  document.getElementById('strip-titles-btn').addEventListener('click', stripTitlePrefixes);
 
   document.getElementById('reset-btn').addEventListener('click', async ()=>{
     if(!(await uiConfirm("This clears every table's seats and moves everyone back to Unassigned. Table names stay. Continue?"))) return;
