@@ -156,7 +156,23 @@ const NAME_FIXES = {
   'Jemima Doss': 'Jemima Mohan',
   'Josiah Mathew': 'Josiah Varghese',
   'Rhea Mathew': 'Rhea John',
-  'Jerry Jeevan': 'Jerill Jeevan'
+  'Jerry Jeevan': 'Jerill Jeevan',
+  'Novena Christal': 'Novena Yesudasan',
+  /* poster/app title cleanup — prefixes dropped, Dr./Pastor kept */
+  'Ms. Annamma Abraham': 'Annamma Abraham',
+  'Mr. Thadathi Abraham': 'Thadathi Abraham',
+  'Mr. Tom Argiris': 'Tom Argiris',
+  'Mrs. Jessica Canlas': 'Jessica Canlas',
+  'Mr. Suno Chacko': 'Suno Chacko',
+  'Mr. Jay Kim': 'Jay Kim',
+  'Mrs. Sunnah Kim': 'Sunnah Kim',
+  'Mr. Pierre Oshana': 'Pierre Oshana',
+  'Mr. Henry Palomo': 'Henry Palomo',
+  'Mrs. Kathy Palomo': 'Kathy Palomo',
+  'Mr. Vasyl Prindyn': 'Vasyl Prindyn',
+  'Mrs. Alicia (Vendor) Shonuga': 'Alicia (Vendor) Shonuga',
+  'Mr. Deric Vendor Shonuga': 'Deric Vendor Shonuga',
+  'Mr. Kevin Varughese': 'Kevin Varughese'
 };
 /* One rename step: the static fixes plus the synced rename map. */
 function renamedTo(name){
